@@ -1,0 +1,1667 @@
+openapi: 3.1.0
+
+info:
+  title: Abuela Empanadas API
+  description: |
+    API REST para el sistema de gestión de Abuela Empanadas.
+    Digitaliza la facturación, cierres de turno, gastos, inventario y reportes
+    de dos sucursales bajo un mismo dueño.
+
+    ## Autenticación
+    Login con PIN numérico. Retorna un JWT Bearer token que debe enviarse
+    en el header `Authorization: Bearer <token>` en todas las rutas protegidas.
+
+    ## Roles
+    - **admin** – Acceso total a ambas sucursales.
+    - **supervisor** – Validar cierres y autorizar anulaciones en su sucursal.
+    - **standard** – Crear facturas y registrar pagos en su turno activo.
+    - **contable** – Solo lectura de reportes.
+
+    ## Fases del MVP
+    - **Fase 1 (Core):** Auth, Usuarios, Productos, Facturas, Cierres, Gastos.
+    - **Fase 2:** Anulaciones, Proveedores, Stock.
+    - **Fase 3:** Reportes exportables, Dashboard en tiempo real.
+  version: 1.0.0
+  contact:
+    name: Abuela Empanadas Dev Team
+
+servers:
+  - url: https://api.abuelaempanadas.com/v1
+    description: Producción
+  - url: http://localhost:8000/v1
+    description: Desarrollo local
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: auth
+    description: Autenticación y sesión
+  - name: usuarios
+    description: Gestión de usuarios y roles
+  - name: sucursales
+    description: Configuración de sucursales
+  - name: productos
+    description: Catálogo de productos
+  - name: facturas
+    description: Emisión y consulta de facturas
+  - name: anulaciones
+    description: Flujo de anulación de facturas
+  - name: cierres
+    description: Cierres de turno diarios
+  - name: gastos
+    description: Gastos del turno
+  - name: proveedores
+    description: Base de datos de proveedores
+  - name: insumos
+    description: Insumos y stock por sucursal
+  - name: reportes
+    description: Reportes exportables y dashboards
+
+paths:
+
+  # ─── AUTH ───────────────────────────────────────────────────────────────────
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login con PIN
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sucursal_id, pin]
+              properties:
+                sucursal_id:
+                  type: integer
+                  example: 1
+                pin:
+                  type: string
+                  example: "1234"
+      responses:
+        "200":
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Perfil del usuario autenticado
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+          description: OK
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Invalidar token de sesión
+      responses:
+        "204":
+          description: Sesión cerrada
+
+  # ─── USUARIOS ────────────────────────────────────────────────────────────────
+
+  /usuarios:
+    get:
+      tags: [usuarios]
+      summary: Listar usuarios
+      description: Solo admin puede listar todos; supervisor ve solo su sucursal.
+      parameters:
+        - $ref: '#/components/parameters/SucursalFilter'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        "200":
+          description: Lista paginada de usuarios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsuarios'
+    post:
+      tags: [usuarios]
+      summary: Crear usuario
+      description: Solo admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioCreate'
+      responses:
+        "201":
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+
+  /usuarios/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [usuarios]
+      summary: Obtener usuario por ID
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+          description: OK
+        "404":
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [usuarios]
+      summary: Actualizar usuario
+      description: Admin puede editar todo. El usuario puede cambiar su propio PIN.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioUpdate'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+          description: OK
+    delete:
+      tags: [usuarios]
+      summary: Desactivar usuario (baja lógica)
+      description: Solo admin. No elimina el registro; pone activo=false.
+      responses:
+        "204":
+          description: Usuario desactivado
+
+  # ─── SUCURSALES ──────────────────────────────────────────────────────────────
+
+  /sucursales:
+    get:
+      tags: [sucursales]
+      summary: Listar sucursales
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sucursal'
+          description: OK
+    post:
+      tags: [sucursales]
+      summary: Crear sucursal
+      description: Solo admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SucursalCreate'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sucursal'
+          description: Sucursal creada
+
+  /sucursales/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [sucursales]
+      summary: Obtener sucursal
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sucursal'
+          description: OK
+    patch:
+      tags: [sucursales]
+      summary: Actualizar sucursal
+      description: Solo admin.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SucursalCreate'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sucursal'
+          description: OK
+
+  # ─── PRODUCTOS ───────────────────────────────────────────────────────────────
+
+  /productos:
+    get:
+      tags: [productos]
+      summary: Listar productos del catálogo
+      parameters:
+        - name: sucursal_id
+          in: query
+          description: Filtrar por disponibilidad en sucursal
+          schema:
+            type: integer
+        - name: categoria
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        "200":
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductos'
+    post:
+      tags: [productos]
+      summary: Crear producto
+      description: Solo admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoCreate'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+          description: Producto creado
+
+  /productos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [productos]
+      summary: Obtener producto
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+          description: OK
+    patch:
+      tags: [productos]
+      summary: Actualizar producto
+      description: Solo admin. No se permite modificar precios a cajeros.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoUpdate'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+          description: OK
+
+  /productos/{id}/sucursales:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [productos]
+      summary: Ver disponibilidad del producto por sucursal
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductoSucursal'
+          description: OK
+    put:
+      tags: [productos]
+      summary: Configurar disponibilidad y precio por sucursal
+      description: Solo admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoSucursalUpsert'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductoSucursal'
+          description: OK
+
+  # ─── FACTURAS ────────────────────────────────────────────────────────────────
+
+  /facturas:
+    get:
+      tags: [facturas]
+      summary: Listar facturas
+      parameters:
+        - $ref: '#/components/parameters/SucursalFilter'
+        - name: cierre_id
+          in: query
+          schema:
+            type: integer
+        - name: turno
+          in: query
+          schema:
+            $ref: '#/components/schemas/TurnoEnum'
+        - name: estado
+          in: query
+          schema:
+            $ref: '#/components/schemas/FacturaEstadoEnum'
+        - name: fecha
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2026-03-15"
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        "200":
+          description: Lista paginada de facturas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFacturas'
+    post:
+      tags: [facturas]
+      summary: Crear factura
+      description: |
+        Disponible para cajeros y supervisores con turno activo abierto.
+        El `cierre_id` se resuelve automáticamente desde el turno activo de la sucursal.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacturaCreate'
+      responses:
+        "201":
+          description: Factura creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        "409":
+          description: No hay cierre activo para este turno
+
+  /facturas/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [facturas]
+      summary: Obtener factura con detalle de ítems
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FacturaDetalle'
+          description: OK
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  # ─── ANULACIONES ────────────────────────────────────────────────────────────
+
+  /facturas/{id}/anular:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [anulaciones]
+      summary: Anular factura
+      description: |
+        Solo admin o supervisor. La factura pasa a estado `anulada` y deja de
+        sumarse al cierre. No se puede anular una factura en un cierre ya cerrado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnulacionCreate'
+          multipart/form-data:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/AnulacionCreate'
+                - type: object
+                  properties:
+                    foto_evidencia:
+                      type: string
+                      format: binary
+      responses:
+        "200":
+          description: Factura anulada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnulacionFactura'
+        "403":
+          description: Sin permiso para anular
+        "409":
+          description: Factura pertenece a un cierre ya cerrado
+
+  /anulaciones:
+    get:
+      tags: [anulaciones]
+      summary: Listar anulaciones
+      parameters:
+        - $ref: '#/components/parameters/SucursalFilter'
+        - name: fecha_desde
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: fecha_hasta
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        "200":
+          description: Lista paginada de anulaciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAnulaciones'
+
+  # ─── CIERRES ─────────────────────────────────────────────────────────────────
+
+  /cierres:
+    get:
+      tags: [cierres]
+      summary: Listar cierres
+      parameters:
+        - $ref: '#/components/parameters/SucursalFilter'
+        - name: fecha
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: turno
+          in: query
+          schema:
+            $ref: '#/components/schemas/TurnoEnum'
+        - name: estado
+          in: query
+          schema:
+            $ref: '#/components/schemas/CierreEstadoEnum'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        "200":
+          description: Lista paginada de cierres
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCierres'
+    post:
+      tags: [cierres]
+      summary: Abrir cierre de turno
+      description: |
+        Crea un cierre en estado `abierto`. Solo puede haber un cierre abierto
+        por turno por sucursal. El sistema bloquea un segundo cierre del mismo
+        turno si ya existe uno abierto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CierreCreate'
+      responses:
+        "201":
+          description: Cierre abierto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CiereDetalle'
+        "409":
+          description: Ya existe un cierre abierto para este turno y sucursal
+
+  /cierres/activo:
+    get:
+      tags: [cierres]
+      summary: Obtener el cierre activo de la sucursal del usuario
+      description: Retorna el cierre en estado `abierto` del turno vigente.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CiereDetalle'
+          description: OK
+        "404":
+          description: No hay cierre activo
+
+  /cierres/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [cierres]
+      summary: Obtener cierre con totales calculados
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CiereDetalle'
+          description: OK
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  /cierres/{id}/cerrar:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [cierres]
+      summary: Ejecutar cierre de turno
+      description: |
+        Supervisor o admin. Calcula totales finales y marca el cierre como
+        `cerrado`. Acción irreversible. Las facturas del turno quedan bloqueadas.
+      responses:
+        "200":
+          description: Cierre ejecutado con totales finales
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CiereDetalle'
+        "409":
+          description: El cierre ya está cerrado
+
+  # ─── Gastos ─────────────────────────────────────────────────────────────────
+
+  /gastos:
+    get:
+      tags: [gastos]
+      summary: Listar gastos
+      parameters:
+        - name: cierre_id
+          in: query
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/SucursalFilter'
+        - name: categoria
+          in: query
+          schema:
+            $ref: '#/components/schemas/EgresoCategoriaEnum'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        "200":
+          description: Lista paginada de gastos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginatedgastos'
+    post:
+      tags: [gastos]
+      summary: Registrar egreso en el turno activo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EgresoCreate'
+      responses:
+        "201":
+          description: Egreso registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Egreso'
+        "409":
+          description: No hay cierre activo
+
+  /gastos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [gastos]
+      summary: Obtener egreso
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Egreso'
+          description: OK
+    delete:
+      tags: [gastos]
+      summary: Eliminar egreso
+      description: Solo si el cierre aún está abierto. Admin o supervisor.
+      responses:
+        "204":
+          description: Egreso eliminado
+
+  # ─── PROVEEDORES ─────────────────────────────────────────────────────────────
+
+  /proveedores:
+    get:
+      tags: [proveedores]
+      summary: Listar proveedores
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        "200":
+          description: Lista de proveedores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProveedores'
+    post:
+      tags: [proveedores]
+      summary: Crear proveedor
+      description: Solo admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProveedorCreate'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proveedor'
+          description: Proveedor creado
+
+  /proveedores/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [proveedores]
+      summary: Obtener proveedor
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proveedor'
+          description: OK
+    patch:
+      tags: [proveedores]
+      summary: Actualizar proveedor
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProveedorCreate'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proveedor'
+          description: OK
+    delete:
+      tags: [proveedores]
+      summary: Desactivar proveedor
+      responses:
+        "204":
+          description: Proveedor desactivado
+
+  # ─── INSUMOS / STOCK ─────────────────────────────────────────────────────────
+
+  /insumos:
+    get:
+      tags: [insumos]
+      summary: Listar insumos
+      parameters:
+        - name: proveedor_id
+          in: query
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInsumos'
+          description: OK
+    post:
+      tags: [insumos]
+      summary: Crear insumo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsumoCreate'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Insumo'
+          description: Insumo creado
+
+  /insumos/{id}/stock:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [insumos]
+      summary: Ver stock por sucursal para este insumo
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stock'
+          description: OK
+    patch:
+      tags: [insumos]
+      summary: Actualizar cantidad de stock en una sucursal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockUpdate'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stock'
+          description: OK
+
+  /stock/alertas:
+    get:
+      tags: [insumos]
+      summary: Insumos por debajo del stock mínimo
+      parameters:
+        - $ref: '#/components/parameters/SucursalFilter'
+      responses:
+        "200":
+          description: Lista de insumos con stock crítico
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockAlerta'
+
+  # ─── REPORTES ────────────────────────────────────────────────────────────────
+
+  /reportes/cierre/{cierre_id}:
+    parameters:
+      - name: cierre_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [reportes]
+      summary: Reporte de cierre de turno
+      parameters:
+        - $ref: '#/components/parameters/FormatoReporte'
+      responses:
+        "200":
+          $ref: '#/components/responses/ReporteResponse'
+
+  /reportes/ventas-diarias:
+    get:
+      tags: [reportes]
+      summary: Ventas del día por sucursal
+      parameters:
+        - name: fecha
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/SucursalFilter'
+        - $ref: '#/components/parameters/FormatoReporte'
+      responses:
+        "200":
+          $ref: '#/components/responses/ReporteResponse'
+
+  /reportes/comparativo:
+    get:
+      tags: [reportes]
+      summary: Comparativo de ventas entre sucursales
+      parameters:
+        - name: fecha_desde
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: fecha_hasta
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/FormatoReporte'
+      responses:
+        "200":
+          $ref: '#/components/responses/ReporteResponse'
+
+  /reportes/gastos:
+    get:
+      tags: [reportes]
+      summary: Gastos detallados por categoría
+      parameters:
+        - name: fecha_desde
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: fecha_hasta
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/SucursalFilter'
+        - $ref: '#/components/parameters/FormatoReporte'
+      responses:
+        "200":
+          $ref: '#/components/responses/ReporteResponse'
+
+  /reportes/ingresos-vs-gastos:
+    get:
+      tags: [reportes]
+      summary: Balance mensual de ingresos vs gastos
+      parameters:
+        - name: año
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 2026
+        - name: mes
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - $ref: '#/components/parameters/SucursalFilter'
+        - $ref: '#/components/parameters/FormatoReporte'
+      responses:
+        "200":
+          $ref: '#/components/responses/ReporteResponse'
+
+  /reportes/facturas-anuladas:
+    get:
+      tags: [reportes]
+      summary: Reporte de facturas anuladas
+      parameters:
+        - name: fecha_desde
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: fecha_hasta
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/SucursalFilter'
+        - $ref: '#/components/parameters/FormatoReporte'
+      responses:
+        "200":
+          $ref: '#/components/responses/ReporteResponse'
+
+# ─── COMPONENTS ───────────────────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    SucursalFilter:
+      name: sucursal_id
+      in: query
+      schema:
+        type: integer
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+    FormatoReporte:
+      name: formato
+      in: query
+      schema:
+        type: string
+        enum: [json, xlsx, pdf]
+        default: json
+
+  responses:
+    Unauthorized:
+      description: No autenticado o token inválido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ReporteResponse:
+      description: Reporte generado. JSON inline o archivo binario según `formato`.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+        application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+          schema:
+            type: string
+            format: binary
+        application/pdf:
+          schema:
+            type: string
+            format: binary
+
+  schemas:
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: "Recurso no encontrado"
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          default: bearer
+        usuario:
+          $ref: '#/components/schemas/Usuario'
+
+    # ── Enums ──
+
+    RolEnum:
+      type: string
+      enum: [admin, supervisor, standard, contable]
+
+    TurnoEnum:
+      type: string
+      enum: [TURNO_1, TURNO_2]
+
+    MetodoPagoEnum:
+      type: string
+      enum: [efectivo, transferencia, pedido_ya]
+
+    FacturaEstadoEnum:
+      type: string
+      enum: [activa, anulada]
+
+    CierreEstadoEnum:
+      type: string
+      enum: [abierto, cerrado]
+
+    AnulacionMotivoEnum:
+      type: string
+      enum: [error_monto, error_producto, pedido_cancelado, duplicado, otro]
+
+    EgresoCategoriaEnum:
+      type: string
+      enum: [insumos, nomina, local, gasolina, contabilidad, servicios, banco, otros]
+
+    FormaPagoProveedorEnum:
+      type: string
+      enum: [efectivo, transferencia, credito]
+
+    # ── Sucursal ──
+
+    Sucursal:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+          example: "Sucursal Norte"
+        direccion:
+          type: string
+        turno1_inicio:
+          type: string
+          format: time
+          example: "06:00"
+        turno1_fin:
+          type: string
+          format: time
+          example: "14:30"
+        turno2_inicio:
+          type: string
+          format: time
+          example: "15:00"
+        turno2_fin:
+          type: string
+          format: time
+          example: "22:00"
+        activa:
+          type: boolean
+
+    SucursalCreate:
+      type: object
+      required: [nombre, direccion]
+      properties:
+        nombre:
+          type: string
+        direccion:
+          type: string
+        turno1_inicio:
+          type: string
+          format: time
+          default: "06:00"
+        turno1_fin:
+          type: string
+          format: time
+          default: "14:30"
+        turno2_inicio:
+          type: string
+          format: time
+          default: "15:00"
+        turno2_fin:
+          type: string
+          format: time
+          default: "22:00"
+        activa:
+          type: boolean
+          default: true
+
+    # ── Usuario ──
+
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: integer
+        sucursal_id:
+          type: integer
+        nombre:
+          type: string
+          example: "Elisa Martínez"
+        rol:
+          $ref: '#/components/schemas/RolEnum'
+        activo:
+          type: boolean
+
+    UsuarioCreate:
+      type: object
+      required: [sucursal_id, nombre, pin, rol]
+      properties:
+        sucursal_id:
+          type: integer
+        nombre:
+          type: string
+        pin:
+          type: string
+          minLength: 4
+          maxLength: 6
+          example: "1234"
+        rol:
+          $ref: '#/components/schemas/RolEnum'
+
+    UsuarioUpdate:
+      type: object
+      properties:
+        nombre:
+          type: string
+        pin:
+          type: string
+          minLength: 4
+          maxLength: 6
+        rol:
+          $ref: '#/components/schemas/RolEnum'
+        activo:
+          type: boolean
+
+    PaginatedUsuarios:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Usuario'
+
+    # ── Producto ──
+
+    Producto:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+          example: "Empanada de pollo"
+        categoria:
+          type: string
+          example: "empanadas"
+        precio_base:
+          type: number
+          format: decimal
+          example: 120.00
+        activo:
+          type: boolean
+
+    ProductoCreate:
+      type: object
+      required: [nombre, precio_base]
+      properties:
+        nombre:
+          type: string
+        categoria:
+          type: string
+        precio_base:
+          type: number
+          format: decimal
+
+    ProductoUpdate:
+      type: object
+      properties:
+        nombre:
+          type: string
+        categoria:
+          type: string
+        precio_base:
+          type: number
+          format: decimal
+        activo:
+          type: boolean
+
+    ProductoSucursal:
+      type: object
+      properties:
+        producto_id:
+          type: integer
+        sucursal_id:
+          type: integer
+        precio_override:
+          type: number
+          nullable: true
+          description: Si null, usa precio_base del producto
+        disponible:
+          type: boolean
+
+    ProductoSucursalUpsert:
+      type: object
+      required: [sucursal_id, disponible]
+      properties:
+        sucursal_id:
+          type: integer
+        precio_override:
+          type: number
+          nullable: true
+        disponible:
+          type: boolean
+
+    PaginatedProductos:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Producto'
+
+    # ── Factura ──
+
+    FacturaItemCreate:
+      type: object
+      required: [producto_id, cantidad]
+      properties:
+        producto_id:
+          type: integer
+        cantidad:
+          type: integer
+          minimum: 1
+        precio_unitario:
+          type: number
+          nullable: true
+          description: Si null, se usa el precio vigente del producto en la sucursal
+
+    FacturaItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        producto_id:
+          type: integer
+        nombre_snapshot:
+          type: string
+          description: Nombre del producto al momento de la venta
+        cantidad:
+          type: integer
+        precio_unitario:
+          type: number
+        subtotal:
+          type: number
+
+    FacturaCreate:
+      type: object
+      required: [metodo_pago, items]
+      properties:
+        metodo_pago:
+          $ref: '#/components/schemas/MetodoPagoEnum'
+        nombre_cliente:
+          type: string
+          nullable: true
+        ncf:
+          type: string
+          nullable: true
+          example: "B0100000001"
+        notas:
+          type: string
+          nullable: true
+          example: "Sin cebolla"
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/FacturaItemCreate'
+
+    Factura:
+      type: object
+      properties:
+        id:
+          type: integer
+        numero_orden:
+          type: string
+          example: "#084"
+        sucursal_id:
+          type: integer
+        usuario_id:
+          type: integer
+        cierre_id:
+          type: integer
+        turno:
+          $ref: '#/components/schemas/TurnoEnum'
+        metodo_pago:
+          $ref: '#/components/schemas/MetodoPagoEnum'
+        total:
+          type: number
+        estado:
+          $ref: '#/components/schemas/FacturaEstadoEnum'
+        nombre_cliente:
+          type: string
+          nullable: true
+        ncf:
+          type: string
+          nullable: true
+        notas:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    FacturaDetalle:
+      allOf:
+        - $ref: '#/components/schemas/Factura'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/FacturaItem'
+            anulacion:
+              $ref: '#/components/schemas/AnulacionFactura'
+              nullable: true
+
+    PaginatedFacturas:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Factura'
+
+    # ── Anulación ──
+
+    AnulacionCreate:
+      type: object
+      required: [motivo]
+      properties:
+        motivo:
+          $ref: '#/components/schemas/AnulacionMotivoEnum'
+        descripcion:
+          type: string
+          nullable: true
+
+    AnulacionFactura:
+      type: object
+      properties:
+        id:
+          type: integer
+        factura_id:
+          type: integer
+        usuario_autoriza_id:
+          type: integer
+        motivo:
+          $ref: '#/components/schemas/AnulacionMotivoEnum'
+        descripcion:
+          type: string
+          nullable: true
+        foto_evidencia_url:
+          type: string
+          nullable: true
+        fecha_anulacion:
+          type: string
+          format: date-time
+
+    PaginatedAnulaciones:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/AnulacionFactura'
+
+    # ── Cierre ──
+
+    CierreCreate:
+      type: object
+      required: [sucursal_id, turno]
+      properties:
+        sucursal_id:
+          type: integer
+        turno:
+          $ref: '#/components/schemas/TurnoEnum'
+
+    CiereDetalle:
+      type: object
+      properties:
+        id:
+          type: integer
+        sucursal_id:
+          type: integer
+        usuario_id:
+          type: integer
+        fecha:
+          type: string
+          format: date
+        turno:
+          $ref: '#/components/schemas/TurnoEnum'
+        total_ventas:
+          type: number
+        total_efectivo:
+          type: number
+        total_transferencia:
+          type: number
+        total_pedido_ya:
+          type: number
+        total_gastos:
+          type: number
+        saldo_final:
+          type: number
+        estado:
+          $ref: '#/components/schemas/CierreEstadoEnum'
+        cerrado_at:
+          type: string
+          format: date-time
+          nullable: true
+        cantidad_facturas:
+          type: integer
+        cantidad_anuladas:
+          type: integer
+
+    PaginatedCierres:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/CiereDetalle'
+
+    # ── Egreso ──
+
+    EgresoCreate:
+      type: object
+      required: [concepto, categoria, monto]
+      properties:
+        concepto:
+          type: string
+          example: "Compra de hojuela"
+        categoria:
+          $ref: '#/components/schemas/EgresoCategoriaEnum'
+        monto:
+          type: number
+          minimum: 0.01
+        metodo_pago:
+          $ref: '#/components/schemas/MetodoPagoEnum'
+
+    Egreso:
+      type: object
+      properties:
+        id:
+          type: integer
+        cierre_id:
+          type: integer
+        usuario_id:
+          type: integer
+        concepto:
+          type: string
+        categoria:
+          $ref: '#/components/schemas/EgresoCategoriaEnum'
+        monto:
+          type: number
+        metodo_pago:
+          $ref: '#/components/schemas/MetodoPagoEnum'
+        created_at:
+          type: string
+          format: date-time
+
+    PaginatedGastos:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Egreso'
+
+    # ── Proveedor ──
+
+    ProveedorCreate:
+      type: object
+      required: [nombre]
+      properties:
+        nombre:
+          type: string
+          example: "Distribuidora Hojuela RD"
+        contacto:
+          type: string
+          nullable: true
+        telefono:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        forma_pago:
+          $ref: '#/components/schemas/FormaPagoProveedorEnum'
+
+    Proveedor:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            activo:
+              type: boolean
+        - $ref: '#/components/schemas/ProveedorCreate'
+
+    PaginatedProveedores:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Proveedor'
+
+    # ── Insumo / Stock ──
+
+    InsumoCreate:
+      type: object
+      required: [nombre, proveedor_id]
+      properties:
+        proveedor_id:
+          type: integer
+        nombre:
+          type: string
+          example: "Hojuela de yuca"
+        unidad:
+          type: string
+          example: "kg"
+        precio_ref:
+          type: number
+          nullable: true
+
+    Insumo:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            activo:
+              type: boolean
+        - $ref: '#/components/schemas/InsumoCreate'
+
+    Stock:
+      type: object
+      properties:
+        id:
+          type: integer
+        insumo_id:
+          type: integer
+        sucursal_id:
+          type: integer
+        cantidad_actual:
+          type: number
+        stock_minimo:
+          type: number
+        updated_at:
+          type: string
+          format: date-time
+
+    StockUpdate:
+      type: object
+      required: [sucursal_id]
+      properties:
+        sucursal_id:
+          type: integer
+        cantidad_actual:
+          type: number
+        stock_minimo:
+          type: number
+
+    StockAlerta:
+      type: object
+      properties:
+        insumo_id:
+          type: integer
+        insumo_nombre:
+          type: string
+        sucursal_id:
+          type: integer
+        sucursal_nombre:
+          type: string
+        cantidad_actual:
+          type: number
+        stock_minimo:
+          type: number
+        unidad:
+          type: string
+
+    PaginatedInsumos:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Insumo'
+
+    # ── Paginación ──
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+        pages:
+          type: integer
