@@ -1,4 +1,5 @@
 from app.schemas.usuario import UsuarioRead
+from pydantic import BaseModel
 
 
 class LoginRequest(BaseModel):

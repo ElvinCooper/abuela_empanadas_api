@@ -24,7 +24,7 @@ api_router.include_router(
     anulaciones.router, prefix="/anulaciones", tags=["anulaciones"]
 )
 api_router.include_router(cierres.router, prefix="/cierres", tags=["cierres"])
-api_router.include_router(egresos.router, prefix="/egresos", tags=["egresos"])
+api_router.include_router(egresos.router, prefix="/gastos", tags=["gastos"])
 api_router.include_router(
     proveedores.router, prefix="/proveedores", tags=["proveedores"]
 )

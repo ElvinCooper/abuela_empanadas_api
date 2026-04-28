@@ -1,4 +1,5 @@
 from app.schemas.common import BaseSchema
+from typing import Optional
 
 
 class SucursalCreate(BaseSchema):
