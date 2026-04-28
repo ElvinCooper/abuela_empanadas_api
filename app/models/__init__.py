@@ -6,3 +6,5 @@ from app.models.cierre_diario import CierreDiario
 from app.models.egreso import Egreso
 from app.models.proveedor import Proveedor
 from app.models.insumo import Insumo
+from app.models.anulacion import Anulacion
+from app.models.stock import Stock
