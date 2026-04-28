@@ -5,6 +5,7 @@ Sistema de gestión para "Abuela Empanadas" construido con FastAPI y PostgreSQL.
 ## Estado del Proyecto
 
 ### ✅ Completado
+
 - Estructura completa del proyecto (FastAPI, SQLAlchemy async, Pydantic).
 - Configuración de Alembic para migraciones de base de datos.
 - Migración inicial aplicada exitosamente.
@@ -15,6 +16,7 @@ Sistema de gestión para "Abuela Empanadas" construido con FastAPI y PostgreSQL.
 - Repositorio inicializado en GitHub.
 
 ### 🛠️ Tecnologías
+
 - **Framework:** FastAPI
 - **ORM:** SQLAlchemy (async)
 - **Base de Datos:** PostgreSQL (Neon)
@@ -32,7 +34,7 @@ Sistema de gestión para "Abuela Empanadas" construido con FastAPI y PostgreSQL.
 
 ## Estructura de Carpetas
 
-```
+```txt
 abuela_empanadas_api/
 ├── app/
 │   ├── api/v1/endpoints/  # Endpoints API
