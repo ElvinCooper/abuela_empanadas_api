@@ -14,6 +14,6 @@ async def autenticar(
         return None
     if not verify_password(password, user.password_hash):
         return None
-    if not user.activo:
+    if not bool(user.activo):
         return None
     return user
