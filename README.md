@@ -69,9 +69,10 @@ abuela_empanadas_api/
 - `/v1/sucursales/` - Gestión de sucursales
 - `/v1/productos/` - Gestión de productos
 - `/v1/facturas/` - Gestión de facturas
-- `/v1/anulaciones/` - Anulaciones
+  - `/v1/facturas/anuladas` - Listar facturas anuladas
+  - `/v1/facturas/{id}/anular` - Anular factura
 - `/v1/cierres/` - Cierres diarios
-- `/v1/egresos/` - Egresos
+- `/v1/gastos/` - Gestión de gastos
 - `/v1/proveedores/` - Proveedores
 - `/v1/insumos/` - Insumos
 - `/v1/reportes/` - Reportes
