@@ -1,7 +1,7 @@
-from typing import Callable
+from typing import Callable, AsyncGenerator, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError
+from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import verify_token
@@ -11,7 +11,7 @@ from app.models.usuario import Usuario
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
 
@@ -27,13 +27,17 @@ async def get_current_user(
     payload = verify_token(token)
     if payload is None:
         raise credentials_exception
-    user_id: str = payload.get("sub")
-    if user_id is None:
+    user_id_str: Optional[str] = payload.get("sub")
+    if user_id_str is None:
         raise credentials_exception
-    user = await db.get(Usuario, int(user_id))
+    try:
+        user_id_int = int(user_id_str)
+    except (ValueError, TypeError):
+        raise credentials_exception
+    user = await db.get(Usuario, user_id_int)
     if user is None:
         raise credentials_exception
-    if not user.activo:
+    if not bool(user.activo):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User is inactive",
