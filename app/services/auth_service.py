@@ -12,7 +12,7 @@ async def autenticar(
     user = result.scalars().first()
     if not user:
         return None
-    if not verify_password(password, user.password_hash):
+    if not verify_password(password, user.password_hash):  # type: ignore[arg-type]
         return None
     if not bool(user.activo):
         return None
