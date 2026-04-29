@@ -17,6 +17,7 @@ class Factura(Base):
     sucursal = relationship("Sucursal", back_populates="facturas")
     usuario = relationship("Usuario")
     detalles = relationship("FacturaDetalle", back_populates="factura")
+    anulaciones = relationship("Anulacion", back_populates="factura")
 
 
 class FacturaDetalle(Base):

@@ -12,4 +12,4 @@ class Anulacion(Base):
     motivo = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    factura = relationship("Factura")
+    factura = relationship("Factura", back_populates="anulaciones")
