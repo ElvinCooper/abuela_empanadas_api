@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
+from enum import Enum
 from jose import JWTError, jwt
 import bcrypt
 from app.core.config import settings
@@ -7,6 +8,10 @@ from app.core.config import settings
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
+    # Convertir Enums a sus valores para serialización JSON
+    for key, value in list(to_encode.items()):
+        if isinstance(value, Enum):
+            to_encode[key] = value.value
     expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(

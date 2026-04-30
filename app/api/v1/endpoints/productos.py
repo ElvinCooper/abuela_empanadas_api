@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.core.dependencies import get_db, get_current_user
 from app.models.usuario import Usuario
+from app.models.producto import Producto
 from app.schemas.producto import ProductoCreate, ProductoRead
 
 router = APIRouter()
@@ -12,7 +14,29 @@ async def list_productos(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    raise NotImplementedError
+    result = await db.execute(select(Producto))
+    productos = result.scalars().all()
+    return productos
+
+
+@router.post("/", response_model=ProductoRead, status_code=201)
+async def create_producto(
+    producto: ProductoCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    new_producto = Producto(
+        sucursal_id=producto.sucursal_id,
+        nombre=producto.nombre,
+        descripcion=producto.descripcion,
+        precio=producto.precio,
+        stock=producto.stock,
+        activo=True,
+    )
+    db.add(new_producto)
+    await db.commit()
+    await db.refresh(new_producto)
+    return new_producto
 
 
 @router.post("/", response_model=ProductoRead, status_code=201)

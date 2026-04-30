@@ -8,7 +8,7 @@ from app.core.security import verify_token
 from app.db.session import AsyncSessionLocal
 from app.models.usuario import Usuario
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -47,7 +47,13 @@ async def get_current_user(
 
 def require_roles(*roles: str) -> Callable:
     async def role_checker(current_user: Usuario = Depends(get_current_user)):
-        if current_user.rol not in roles:
+        # Convertir rol del usuario a string para comparar con los roles permitidos
+        user_rol = (
+            current_user.rol.value
+            if hasattr(current_user.rol, "value")
+            else str(current_user.rol)
+        )
+        if user_rol not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions",

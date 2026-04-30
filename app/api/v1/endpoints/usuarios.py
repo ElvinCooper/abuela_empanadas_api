@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.core.dependencies import get_db, get_current_user, require_roles
+from app.core.security import hash_password
 from app.schemas.usuario import UsuarioCreate, UsuarioRead
 from app.models.usuario import Usuario
 
@@ -12,7 +14,8 @@ async def list_usuarios(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(require_roles("admin", "supervisor")),
 ):
-    raise NotImplementedError
+    result = await db.execute(select(Usuario))
+    return result.scalars().all()
 
 
 @router.post("/", response_model=UsuarioRead, status_code=201)
@@ -21,4 +24,15 @@ async def create_usuario(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(require_roles("admin")),
 ):
-    raise NotImplementedError
+    new_usuario = Usuario(
+        sucursal_id=usuario.sucursal_id,
+        nombre=usuario.nombre,
+        username=usuario.username,
+        password_hash=hash_password(usuario.password),
+        rol=usuario.rol,
+        activo=True,
+    )
+    db.add(new_usuario)
+    await db.commit()
+    await db.refresh(new_usuario)
+    return new_usuario
