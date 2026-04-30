@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -7,6 +9,7 @@ from app.models.cierre_diario import CierreDiario
 from app.schemas.cierre import CierreDiarioCreate, CierreDiarioRead
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/")
@@ -17,20 +20,10 @@ async def list_cierres(
     try:
         result = await db.execute(select(CierreDiario))
         cierres = result.scalars().all()
-        # Convertir manualmente a dicts para evitar errores de serialización
-        return [
-            {
-                "id": c.id,
-                "sucursal_id": c.sucursal_id,
-                "fecha": str(c.fecha),
-                "total_ventas": c.total_ventas,
-                "total_egresos": c.total_egresos,
-            }
-            for c in cierres
-        ]
     except Exception as e:
-        print(f"Error in list_cierres: {e}")
+        logger.exception("Error listing daily closures")
         raise
+    return cierres
 
 
 @router.post("/", response_model=CierreDiarioRead, status_code=201)

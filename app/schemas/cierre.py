@@ -1,10 +1,11 @@
 from typing import Optional
+from datetime import datetime
 from app.schemas.common import BaseSchema
 
 
 class CierreDiarioCreate(BaseSchema):
     sucursal_id: int
-    fecha: str
+    fecha: datetime
     total_ventas: int
     total_egresos: int
 
@@ -17,6 +18,6 @@ class CierreDiarioUpdate(BaseSchema):
 class CierreDiarioRead(BaseSchema):
     id: int
     sucursal_id: int
-    fecha: str
+    fecha: datetime
     total_ventas: int
     total_egresos: int
