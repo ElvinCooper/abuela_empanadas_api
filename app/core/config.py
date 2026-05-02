@@ -10,10 +10,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     PROJECT_NAME: str = "Abuela Empanadas API"
     DEBUG: bool = False
+    TEST_DATABASE_URL: str | None = None
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()

@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_create_cierre(async_client, usuario_admin):
     response = await async_client.post(
-        "/v1/cierres/",
+        "/api/v1/cierres/",
         json={
             "sucursal_id": 1,
             "fecha": "2026-04-27",

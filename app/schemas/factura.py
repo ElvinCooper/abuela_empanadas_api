@@ -6,17 +6,17 @@ class FacturaCreate(BaseSchema):
     sucursal_id: int
     usuario_id: int
     total: int
-    pagada: bool = False
+    id_status: int = 1
 
 
 class FacturaUpdate(BaseSchema):
     total: Optional[int] = None
-    pagada: Optional[bool] = None
+    id_status: Optional[int] = None
 
 
 class FacturaRead(BaseSchema):
     id: int
     sucursal_id: int
     usuario_id: int
+    id_status: int
     total: int
-    pagada: bool

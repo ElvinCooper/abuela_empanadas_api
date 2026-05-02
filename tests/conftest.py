@@ -1,33 +1,161 @@
+import os
 import pytest
-from httpx import AsyncClient
+import pytest_asyncio
+import sqlalchemy as sa
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+from uuid import uuid4
 from app.main import app
+from app.core.dependencies import get_db
 from app.db.session import Base
 from app.core.config import settings
 
-TEST_DATABASE_URL = settings.DATABASE_URL.replace(
-    "abuela_empanadas", "abuela_empanadas_test"
-)
+
+def build_test_database_url(database_url: str, derive_database_name: bool) -> str:
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    database_url = database_url.replace("-pooler.", ".")
+
+    parsed = urlparse(database_url)
+    database_name = parsed.path.lstrip("/")
+    if derive_database_name:
+        database_name = (
+            database_name.replace("abuela_empanadas", "abuela_empanadas_test")
+            if "abuela_empanadas" in database_name
+            else f"{database_name}_test"
+        )
+    query_params = parse_qs(parsed.query)
+    query_params.pop("sslmode", None)
+    query_params.pop("channel_binding", None)
+    return urlunparse(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            f"/{database_name}",
+            parsed.params,
+            urlencode(query_params, doseq=True),
+            parsed.fragment,
+        )
+    )
 
 
-@pytest.fixture(scope="session")
-def test_engine():
-    engine = create_async_engine(TEST_DATABASE_URL)
+configured_test_database_url = os.getenv("TEST_DATABASE_URL") or settings.TEST_DATABASE_URL
+if configured_test_database_url:
+    TEST_DATABASE_URL = build_test_database_url(
+        configured_test_database_url,
+        derive_database_name=False,
+    )
+else:
+    TEST_DATABASE_URL = build_test_database_url(
+        settings.DATABASE_URL,
+        derive_database_name=True,
+    )
+
+
+@pytest_asyncio.fixture
+async def test_engine():
+    engine = create_async_engine(
+        TEST_DATABASE_URL,
+        poolclass=NullPool,
+        connect_args={
+            "prepared_statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
+        },
+    )
     yield engine
-    engine.dispose()
+    await engine.dispose()
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture
 async def setup_database(test_engine):
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(
+            sa.text(
+                """
+                TRUNCATE TABLE
+                    anulaciones,
+                    factura_detalles,
+                    facturas,
+                    cierres_diarios,
+                    egresos,
+                    stocks,
+                    productos,
+                    insumos,
+                    usuarios,
+                    sucursales,
+                    proveedores,
+                    status_factura
+                RESTART IDENTITY CASCADE
+                """
+            )
+        )
+        from app.models.sucursal import Sucursal
+        from app.models.status_factura import StatusFactura
+
+        await conn.execute(
+            StatusFactura.__table__.insert(),
+            [
+                {
+                    "id": 1,
+                    "nombre": "pendiente",
+                    "descripcion": "Factura pendiente de pago",
+                    "activo": True,
+                },
+                {
+                    "id": 2,
+                    "nombre": "pagada",
+                    "descripcion": "Factura pagada",
+                    "activo": True,
+                },
+                {
+                    "id": 3,
+                    "nombre": "anulada",
+                    "descripcion": "Factura anulada",
+                    "activo": True,
+                },
+            ],
+        )
+        await conn.execute(
+            Sucursal.__table__.insert(),
+            [
+                {
+                    "id": 1,
+                    "nombre": "Sucursal Principal",
+                    "direccion": "Principal",
+                    "telefono": "0000",
+                    "activo": True,
+                }
+            ],
+        )
     yield
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.execute(
+            sa.text(
+                """
+                TRUNCATE TABLE
+                    anulaciones,
+                    factura_detalles,
+                    facturas,
+                    cierres_diarios,
+                    egresos,
+                    stocks,
+                    productos,
+                    insumos,
+                    usuarios,
+                    sucursales,
+                    proveedores,
+                    status_factura
+                RESTART IDENTITY CASCADE
+                """
+            )
+        )
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def db_session(test_engine, setup_database):
     async_session = sessionmaker(
         test_engine, class_=AsyncSession, expire_on_commit=False
@@ -37,16 +165,22 @@ async def db_session(test_engine, setup_database):
         await session.rollback()
 
 
-@pytest.fixture
-async def async_client():
-    async with AsyncClient(app=app, base_url="http://test") as client:
+@pytest_asyncio.fixture
+async def async_client(db_session):
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+    app.dependency_overrides.clear()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def usuario_admin(db_session):
     from app.models.usuario import Usuario, RolEnum
-    from app.core.security import hash_password
+    from app.core.security import create_access_token, hash_password
 
     user = Usuario(
         sucursal_id=1,
@@ -59,4 +193,5 @@ async def usuario_admin(db_session):
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
+    user.token = create_access_token({"sub": str(user.id), "rol": user.rol})
     return user
