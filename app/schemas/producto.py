@@ -21,6 +21,7 @@ class ProductoUpdate(BaseSchema):
 class ProductoRead(BaseSchema):
     id: int
     sucursal_id: int
+    sucursal_nombre: Optional[str] = None
     nombre: str
     descripcion: Optional[str] = None
     precio: int

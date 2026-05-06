@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.core.dependencies import get_db, get_current_user
 from app.models.usuario import Usuario
 from app.models.insumo import Insumo
@@ -14,7 +15,7 @@ async def list_insumos(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    result = await db.execute(select(Insumo))
+    result = await db.execute(select(Insumo).options(selectinload(Insumo.sucursal)))
     return result.scalars().all()
 
 
@@ -33,5 +34,5 @@ async def create_insumo(
     )
     db.add(new_insumo)
     await db.commit()
-    await db.refresh(new_insumo)
+    await db.refresh(new_insumo, attribute_names=["sucursal"])
     return new_insumo

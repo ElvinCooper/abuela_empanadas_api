@@ -6,3 +6,5 @@ dist/
 .pytest_cache/
 alembic/versions/*.pyc
 nul
+opencode.json
+testsprite_tests/

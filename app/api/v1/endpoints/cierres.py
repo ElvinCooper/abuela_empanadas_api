@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.core.dependencies import get_db, get_current_user
 from app.models.usuario import Usuario
 from app.models.cierre_diario import CierreDiario
@@ -18,7 +19,9 @@ async def list_cierres(
     current_user: Usuario = Depends(get_current_user),
 ):
     try:
-        result = await db.execute(select(CierreDiario))
+        result = await db.execute(
+            select(CierreDiario).options(selectinload(CierreDiario.sucursal))
+        )
         cierres = result.scalars().all()
     except Exception as e:
         logger.exception("Error listing daily closures")
@@ -40,5 +43,5 @@ async def create_cierre(
     )
     db.add(new_cierre)
     await db.commit()
-    await db.refresh(new_cierre)
+    await db.refresh(new_cierre, attribute_names=["sucursal"])
     return new_cierre

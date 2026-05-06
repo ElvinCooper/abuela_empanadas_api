@@ -18,3 +18,7 @@ class Producto(Base):
 
     sucursal = relationship("Sucursal", back_populates="productos")
     factura_detalles = relationship("FacturaDetalle", back_populates="producto")
+
+    @property
+    def sucursal_nombre(self):
+        return self.sucursal.nombre if self.sucursal else None
