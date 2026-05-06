@@ -42,7 +42,9 @@ def build_test_database_url(database_url: str, derive_database_name: bool) -> st
     )
 
 
-configured_test_database_url = os.getenv("TEST_DATABASE_URL") or settings.TEST_DATABASE_URL
+configured_test_database_url = (
+    os.getenv("TEST_DATABASE_URL") or settings.TEST_DATABASE_URL
+)
 if configured_test_database_url:
     TEST_DATABASE_URL = build_test_database_url(
         configured_test_database_url,
@@ -130,6 +132,11 @@ async def setup_database(test_engine):
                     "activo": True,
                 }
             ],
+        )
+        await conn.execute(
+            sa.text(
+                "SELECT setval('sucursales_id_seq', (SELECT MAX(id) FROM sucursales))"
+            )
         )
     yield
     async with test_engine.begin() as conn:
