@@ -2,7 +2,9 @@ from typing import Callable, AsyncGenerator, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.core.security import verify_token
 from app.db.session import AsyncSessionLocal
@@ -34,7 +36,12 @@ async def get_current_user(
         user_id_int = int(user_id_str)
     except (ValueError, TypeError):
         raise credentials_exception
-    user = await db.get(Usuario, user_id_int)
+    result = await db.execute(
+        select(Usuario)
+        .where(Usuario.id == user_id_int)
+        .options(selectinload(Usuario.sucursal))
+    )
+    user = result.scalars().first()
     if user is None:
         raise credentials_exception
     if not bool(user.activo):
