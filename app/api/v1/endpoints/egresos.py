@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.core.dependencies import get_db, get_current_user
 from app.models.usuario import Usuario
 from app.models.egreso import Egreso
@@ -14,7 +15,7 @@ async def listar_gastos(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    result = await db.execute(select(Egreso))
+    result = await db.execute(select(Egreso).options(selectinload(Egreso.sucursal)))
     return result.scalars().all()
 
 
@@ -31,5 +32,5 @@ async def crear_gasto(
     )
     db.add(new_egreso)
     await db.commit()
-    await db.refresh(new_egreso)
+    await db.refresh(new_egreso, attribute_names=["sucursal"])
     return new_egreso

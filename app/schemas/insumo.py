@@ -18,6 +18,7 @@ class InsumoUpdate(BaseSchema):
 class InsumoRead(BaseSchema):
     id: int
     sucursal_id: int
+    sucursal_nombre: Optional[str] = None
     proveedor_id: Optional[int] = None
     nombre: str
     stock: int

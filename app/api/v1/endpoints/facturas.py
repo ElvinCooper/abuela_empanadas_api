@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.core.dependencies import get_db, get_current_user
 from app.models.usuario import Usuario
 from app.models.factura import Factura
@@ -17,7 +18,7 @@ async def list_facturas(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    result = await db.execute(select(Factura))
+    result = await db.execute(select(Factura).options(selectinload(Factura.sucursal)))
     return result.scalars().all()
 
 
@@ -35,7 +36,7 @@ async def create_factura(
     )
     db.add(new_factura)
     await db.commit()
-    await db.refresh(new_factura)
+    await db.refresh(new_factura, attribute_names=["sucursal"])
     return new_factura
 
 

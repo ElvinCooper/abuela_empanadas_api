@@ -16,5 +16,6 @@ class EgresoUpdate(BaseSchema):
 class EgresoRead(BaseSchema):
     id: int
     sucursal_id: int
+    sucursal_nombre: Optional[str] = None
     descripcion: str
     monto: int

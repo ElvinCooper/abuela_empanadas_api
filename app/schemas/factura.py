@@ -17,6 +17,7 @@ class FacturaUpdate(BaseSchema):
 class FacturaRead(BaseSchema):
     id: int
     sucursal_id: int
+    sucursal_nombre: Optional[str] = None
     usuario_id: int
     id_status: int
     total: int

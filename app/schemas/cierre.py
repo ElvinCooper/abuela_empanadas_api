@@ -18,6 +18,7 @@ class CierreDiarioUpdate(BaseSchema):
 class CierreDiarioRead(BaseSchema):
     id: int
     sucursal_id: int
+    sucursal_nombre: Optional[str] = None
     fecha: datetime
     total_ventas: int
     total_egresos: int

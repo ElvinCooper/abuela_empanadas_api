@@ -26,6 +26,10 @@ class Factura(Base):
     detalles = relationship("FacturaDetalle", back_populates="factura")
     anulaciones = relationship("Anulacion", back_populates="factura")
 
+    @property
+    def sucursal_nombre(self):
+        return self.sucursal.nombre if self.sucursal else None
+
 
 class FacturaDetalle(Base):
     __tablename__ = "factura_detalles"

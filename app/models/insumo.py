@@ -17,3 +17,7 @@ class Insumo(Base):
 
     sucursal = relationship("Sucursal", back_populates="insumos")
     proveedor = relationship("Proveedor", back_populates="insumos")
+
+    @property
+    def sucursal_nombre(self):
+        return self.sucursal.nombre if self.sucursal else None

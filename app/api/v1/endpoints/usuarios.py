@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.core.dependencies import get_db, get_current_user, require_roles
 from app.core.security import hash_password
 from app.schemas.usuario import UsuarioCreate, UsuarioRead
@@ -14,7 +15,7 @@ async def list_usuarios(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(require_roles("admin", "supervisor")),
 ):
-    result = await db.execute(select(Usuario))
+    result = await db.execute(select(Usuario).options(selectinload(Usuario.sucursal)))
     return result.scalars().all()
 
 
@@ -34,5 +35,5 @@ async def create_usuario(
     )
     db.add(new_usuario)
     await db.commit()
-    await db.refresh(new_usuario)
+    await db.refresh(new_usuario, attribute_names=["sucursal"])
     return new_usuario

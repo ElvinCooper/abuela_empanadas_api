@@ -22,6 +22,7 @@ class UsuarioUpdate(BaseSchema):
 class UsuarioRead(BaseSchema):
     id: int
     sucursal_id: int
+    sucursal_nombre: Optional[str] = None
     nombre: str
     username: str
     rol: RolEnum
