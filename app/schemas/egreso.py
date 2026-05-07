@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime
 from app.schemas.common import BaseSchema
 
 
@@ -19,3 +20,4 @@ class EgresoRead(BaseSchema):
     sucursal_nombre: Optional[str] = None
     descripcion: str
     monto: int
+    created_at: datetime
