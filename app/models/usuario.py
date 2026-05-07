@@ -28,7 +28,7 @@ class Usuario(Base):
     nombre = Column(String, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    rol: RolEnum = Column(SQLEnum(RolEnum), nullable=False)
+    rol: RolEnum = Column(SQLEnum(RolEnum), nullable=False)  # type: ignore[assignment]
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
