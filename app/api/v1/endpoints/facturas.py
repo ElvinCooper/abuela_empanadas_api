@@ -38,14 +38,14 @@ def _build_factura_response(factura: Factura) -> FacturaDataResponse:
     fecha_str = factura.created_at.strftime("%d-%m-%Y") if factura.created_at else ""
 
     encabezado = EncabezadoRead(
-        id_factura=factura.id,
+        id_factura=int(factura.id),
         fecha=fecha_str,
-        id_cliente=factura.usuario_id,
-        subtotal=factura.subtotal,
-        porcentaje_descuento=factura.porcentaje_descuento,
-        descuento=factura.descuento,
-        itbis=factura.itbis,
-        total_general=factura.total_general,
+        id_cliente=int(factura.usuario_id),
+        subtotal=float(factura.subtotal),
+        porcentaje_descuento=float(factura.porcentaje_descuento),
+        descuento=float(factura.descuento),
+        itbis=float(factura.itbis),
+        total_general=float(factura.total_general),
         moneda=factura.moneda.nombre if factura.moneda else "",
         metodo_pago=factura.metodo_pago.nombre if factura.metodo_pago else "",
         estado=factura.status.nombre if factura.status else "",
@@ -80,7 +80,7 @@ async def create_factura(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    detalle_items_data = []
+    detalle_items_data: list[dict[str, float | int]] = []
     subtotal = 0.0
 
     for item in factura.detalle:
@@ -94,7 +94,7 @@ async def create_factura(
                 detail=f"Producto con id {item.id_producto} no encontrado",
             )
 
-        precio = producto.precio
+        precio = int(producto.precio)
         precio_linea = precio * item.cantidad
         descuento_linea = precio_linea * (factura.porcentaje_descuento / 100)
         base_imponible = precio_linea - descuento_linea
