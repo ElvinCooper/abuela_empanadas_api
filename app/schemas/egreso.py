@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import computed_field
+from pydantic import Field, field_serializer
 from app.schemas.common import BaseSchema
 
 
@@ -21,8 +21,8 @@ class EgresoRead(BaseSchema):
     sucursal_nombre: Optional[str] = None
     descripcion: str
     monto: int
-    created_at: datetime
+    fecha: datetime = Field(validation_alias="created_at")
 
-    @computed_field
-    def fecha(self) -> str:
-        return self.created_at.strftime("%d-%m-%Y") if self.created_at else ""
+    @field_serializer("fecha")
+    def serialize_fecha(self, value: datetime, _info) -> str:
+        return value.strftime("%d-%m-%Y") if value else ""
