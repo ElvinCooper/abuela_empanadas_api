@@ -17,7 +17,11 @@ async def list_productos(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    result = await db.execute(select(Producto).options(selectinload(Producto.sucursal)))
+    result = await db.execute(
+        select(Producto).options(
+            selectinload(Producto.sucursal), selectinload(Producto.categoria)
+        )
+    )
     productos = result.scalars().all()
     return productos
 
