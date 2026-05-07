@@ -1,5 +1,4 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -13,17 +12,10 @@ router = APIRouter()
 
 @router.get("/", response_model=list[ProductoRead])
 async def list_productos(
-    categoria_id: Optional[int] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    query = select(Producto).options(
-        selectinload(Producto.sucursal),
-        selectinload(Producto.categoria),
-    )
-    if categoria_id is not None:
-        query = query.where(Producto.categoria_id == categoria_id)
-    result = await db.execute(query)
+    result = await db.execute(select(Producto).options(selectinload(Producto.sucursal)))
     productos = result.scalars().all()
     return productos
 
