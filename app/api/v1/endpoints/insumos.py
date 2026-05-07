@@ -15,7 +15,11 @@ async def list_insumos(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    result = await db.execute(select(Insumo).options(selectinload(Insumo.sucursal)))
+    result = await db.execute(
+        select(Insumo).options(
+            selectinload(Insumo.sucursal), selectinload(Insumo.proveedor)
+        )
+    )
     return result.scalars().all()
 
 
@@ -34,5 +38,5 @@ async def create_insumo(
     )
     db.add(new_insumo)
     await db.commit()
-    await db.refresh(new_insumo, attribute_names=["sucursal"])
+    await db.refresh(new_insumo, attribute_names=["sucursal", "proveedor"])
     return new_insumo

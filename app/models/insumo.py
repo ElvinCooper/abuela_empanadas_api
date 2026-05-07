@@ -21,3 +21,7 @@ class Insumo(Base):
     @property
     def sucursal_nombre(self):
         return self.sucursal.nombre if self.sucursal else None
+
+    @property
+    def proveedor_nombre(self):
+        return self.proveedor.nombre if self.proveedor else None

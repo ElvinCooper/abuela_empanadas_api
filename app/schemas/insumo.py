@@ -20,6 +20,7 @@ class InsumoRead(BaseSchema):
     sucursal_id: int
     sucursal_nombre: Optional[str] = None
     proveedor_id: Optional[int] = None
+    proveedor_nombre: Optional[str] = None
     nombre: str
     stock: int
     activo: bool
