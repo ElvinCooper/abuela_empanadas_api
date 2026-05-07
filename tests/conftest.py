@@ -90,14 +90,38 @@ async def setup_database(test_engine):
                     usuarios,
                     sucursales,
                     proveedores,
-                    status_factura
+                    status_factura,
+                    monedas,
+                    metodo_pago
                 RESTART IDENTITY CASCADE
                 """
             )
         )
         from app.models.sucursal import Sucursal
         from app.models.status_factura import StatusFactura
+        from app.models.moneda import Moneda
+        from app.models.metodo_pago import MetodoPago
 
+        await conn.execute(
+            Moneda.__table__.insert(),
+            [
+                {
+                    "id": 1,
+                    "nombre": "Peso Dominicano",
+                    "simbolo": "RD$",
+                    "activo": True,
+                },
+                {"id": 2, "nombre": "Dólar", "simbolo": "$", "activo": True},
+            ],
+        )
+        await conn.execute(
+            MetodoPago.__table__.insert(),
+            [
+                {"id": 1, "nombre": "Efectivo", "activo": True},
+                {"id": 2, "nombre": "Tarjeta", "activo": True},
+                {"id": 3, "nombre": "Transferencia", "activo": True},
+            ],
+        )
         await conn.execute(
             StatusFactura.__table__.insert(),
             [
@@ -155,7 +179,9 @@ async def setup_database(test_engine):
                     usuarios,
                     sucursales,
                     proveedores,
-                    status_factura
+                    status_factura,
+                    monedas,
+                    metodo_pago
                 RESTART IDENTITY CASCADE
                 """
             )

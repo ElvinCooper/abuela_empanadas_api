@@ -1,0 +1,1 @@
+postgresql+psycopg2://neondb_owner:npg_FPCfXj46kIlb@ep-raspy-flower-ambdvr6e.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require

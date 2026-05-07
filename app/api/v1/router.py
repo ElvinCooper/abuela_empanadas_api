@@ -10,6 +10,8 @@ from app.api.v1.endpoints import (
     proveedores,
     insumos,
     reportes,
+    monedas,
+    metodo_pago,
 )
 
 api_router = APIRouter()
@@ -26,3 +28,7 @@ api_router.include_router(
 )
 api_router.include_router(insumos.router, prefix="/insumos", tags=["insumos"])
 api_router.include_router(reportes.router, prefix="/reportes", tags=["reportes"])
+api_router.include_router(monedas.router, prefix="/monedas", tags=["monedas"])
+api_router.include_router(
+    metodo_pago.router, prefix="/metodos-pago", tags=["metodos-pago"]
+)

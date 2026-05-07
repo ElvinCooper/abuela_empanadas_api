@@ -32,7 +32,10 @@ async def create_factura(
         sucursal_id=factura.sucursal_id,
         usuario_id=factura.usuario_id,
         id_status=factura.id_status,
+        id_moneda=factura.id_moneda,
+        id_metodo_pago=factura.id_metodo_pago,
         total=factura.total,
+        descuento=factura.descuento,
     )
     db.add(new_factura)
     await db.commit()

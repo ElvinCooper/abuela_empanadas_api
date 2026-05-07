@@ -17,12 +17,29 @@ class Factura(Base):
         default=1,
         server_default=text("1"),
     )
+    id_moneda = Column(
+        Integer,
+        ForeignKey("monedas.id"),
+        nullable=False,
+        default=1,
+        server_default=text("1"),
+    )
+    id_metodo_pago = Column(
+        Integer,
+        ForeignKey("metodo_pago.id"),
+        nullable=False,
+        default=1,
+        server_default=text("1"),
+    )
     total = Column(Integer, nullable=False)
+    descuento = Column(Integer, nullable=False, server_default=text("0"), default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     sucursal = relationship("Sucursal", back_populates="facturas")
     usuario = relationship("Usuario")
     status = relationship("StatusFactura", back_populates="facturas")
+    moneda = relationship("Moneda", back_populates="facturas")
+    metodo_pago = relationship("MetodoPago", back_populates="facturas")
     detalles = relationship("FacturaDetalle", back_populates="factura")
     anulaciones = relationship("Anulacion", back_populates="factura")
 

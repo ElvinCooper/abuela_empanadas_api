@@ -8,3 +8,4 @@ alembic/versions/*.pyc
 nul
 opencode.json
 testsprite_tests/
+.vercel
