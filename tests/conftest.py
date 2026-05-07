@@ -101,6 +101,7 @@ async def setup_database(test_engine):
         from app.models.status_factura import StatusFactura
         from app.models.moneda import Moneda
         from app.models.metodo_pago import MetodoPago
+        from app.models.producto import Producto
 
         await conn.execute(
             Moneda.__table__.insert(),
@@ -160,6 +161,34 @@ async def setup_database(test_engine):
         await conn.execute(
             sa.text(
                 "SELECT setval('sucursales_id_seq', (SELECT MAX(id) FROM sucursales))"
+            )
+        )
+        await conn.execute(
+            Producto.__table__.insert(),
+            [
+                {
+                    "id": 1,
+                    "sucursal_id": 1,
+                    "nombre": "Empanada de carne",
+                    "descripcion": "Rellena de carne",
+                    "precio": 100,
+                    "stock": 100,
+                    "activo": True,
+                },
+                {
+                    "id": 2,
+                    "sucursal_id": 1,
+                    "nombre": "Empanada de pollo",
+                    "descripcion": "Rellena de pollo",
+                    "precio": 120,
+                    "stock": 100,
+                    "activo": True,
+                },
+            ],
+        )
+        await conn.execute(
+            sa.text(
+                "SELECT setval('productos_id_seq', (SELECT MAX(id) FROM productos))"
             )
         )
     yield

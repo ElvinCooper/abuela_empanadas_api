@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
@@ -31,8 +31,13 @@ class Factura(Base):
         default=1,
         server_default=text("1"),
     )
-    total = Column(Integer, nullable=False)
-    descuento = Column(Integer, nullable=False, server_default=text("0"), default=0)
+    subtotal = Column(Float, nullable=False)
+    porcentaje_descuento = Column(
+        Float, nullable=False, server_default=text("0"), default=0
+    )
+    descuento = Column(Float, nullable=False, server_default=text("0"), default=0)
+    itbis = Column(Float, nullable=False, server_default=text("0"), default=0)
+    total_general = Column(Float, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     sucursal = relationship("Sucursal", back_populates="facturas")
@@ -55,7 +60,12 @@ class FacturaDetalle(Base):
     factura_id = Column(Integer, ForeignKey("facturas.id"), nullable=False)
     producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False)
     cantidad = Column(Integer, nullable=False)
-    precio_unitario = Column(Integer, nullable=False)
+    precio_unitario = Column(Float, nullable=False)
+    descuento = Column(Float, nullable=False, server_default=text("0"), default=0)
+    base_imponible = Column(Float, nullable=False)
+    itbis = Column(Float, nullable=False, server_default=text("0"), default=0)
+    itbis_aplicado = Column(Float, nullable=False, server_default=text("0"), default=0)
+    total_linea = Column(Float, nullable=False)
 
     factura = relationship("Factura", back_populates="detalles")
     producto = relationship("Producto", back_populates="factura_detalles")

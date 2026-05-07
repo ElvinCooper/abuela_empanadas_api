@@ -15,7 +15,7 @@ async def generate_reporte(
     current_user: Usuario = Depends(get_current_user),
 ):
     # Reporte básico: total de ventas y gastos
-    facturas_result = await db.execute(select(func.sum(Factura.total)))
+    facturas_result = await db.execute(select(func.sum(Factura.total_general)))
     total_ventas = facturas_result.scalar() or 0
 
     gastos_result = await db.execute(select(func.sum(Egreso.monto)))
