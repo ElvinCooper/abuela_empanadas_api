@@ -18,10 +18,9 @@ async def test_create_factura(async_client, usuario_admin):
     )
     assert response.status_code == 201
     data = response.json()
-    assert "data" in data
-    assert "encabezado" in data["data"]
-    assert "detalle" in data["data"]
-    encabezado = data["data"]["encabezado"]
+    assert "encabezado" in data
+    assert "detalle" in data
+    encabezado = data["encabezado"]
     assert encabezado["id_factura"] is not None
     assert encabezado["id_cliente"] == usuario_admin.id
     assert encabezado["subtotal"] > 0

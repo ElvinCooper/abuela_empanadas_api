@@ -17,7 +17,7 @@ async def test_anular_factura(async_client, usuario_admin):
         headers={"Authorization": f"Bearer {usuario_admin.token}"},
     )
     assert factura_response.status_code == 201
-    factura_id = factura_response.json()["data"]["encabezado"]["id_factura"]
+    factura_id = factura_response.json()["encabezado"]["id_factura"]
 
     response = await async_client.post(
         f"/api/v1/facturas/{factura_id}/anular",
