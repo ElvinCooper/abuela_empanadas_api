@@ -4,6 +4,7 @@ from app.schemas.common import BaseSchema
 
 class ProductoCreate(BaseSchema):
     sucursal_id: int
+    categoria_id: Optional[int] = None
     nombre: str
     descripcion: Optional[str] = None
     precio: int
@@ -22,6 +23,8 @@ class ProductoRead(BaseSchema):
     id: int
     sucursal_id: int
     sucursal_nombre: Optional[str] = None
+    categoria_id: Optional[int] = None
+    categoria_nombre: Optional[str] = None
     nombre: str
     descripcion: Optional[str] = None
     precio: int

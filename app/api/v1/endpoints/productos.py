@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from typing import Optional
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -12,10 +13,17 @@ router = APIRouter()
 
 @router.get("/", response_model=list[ProductoRead])
 async def list_productos(
+    categoria_id: Optional[int] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    result = await db.execute(select(Producto).options(selectinload(Producto.sucursal)))
+    query = select(Producto).options(
+        selectinload(Producto.sucursal),
+        selectinload(Producto.categoria),
+    )
+    if categoria_id is not None:
+        query = query.where(Producto.categoria_id == categoria_id)
+    result = await db.execute(query)
     productos = result.scalars().all()
     return productos
 
@@ -28,6 +36,7 @@ async def create_producto(
 ):
     new_producto = Producto(
         sucursal_id=producto.sucursal_id,
+        categoria_id=producto.categoria_id,
         nombre=producto.nombre,
         descripcion=producto.descripcion,
         precio=producto.precio,
@@ -36,14 +45,5 @@ async def create_producto(
     )
     db.add(new_producto)
     await db.commit()
-    await db.refresh(new_producto, attribute_names=["sucursal"])
+    await db.refresh(new_producto, attribute_names=["sucursal", "categoria"])
     return new_producto
-
-
-@router.post("/", response_model=ProductoRead, status_code=201)
-async def create_producto(
-    producto: ProductoCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user),
-):
-    raise NotImplementedError
