@@ -37,8 +37,21 @@ class EncabezadoRead(BaseModel):
     total: float
 
 
+class FacturaFiscalBlock(BaseModel):
+    requiere_ncf: bool = False
+    ncf: Optional[str] = None
+    tipo_ncf: Optional[str] = None
+    rnc_emisor: Optional[str] = None
+    razon_social_emisor: Optional[str] = None
+    rnc_cliente: Optional[str] = None
+    nombre_cliente_fiscal: Optional[str] = None
+    fecha_vencimiento_ncf: Optional[str] = None
+    estado_fiscal: Optional[str] = None
+
+
 class FacturaDataResponse(BaseModel):
     encabezado: EncabezadoRead
+    fiscal: FacturaFiscalBlock
     detalle: list[FacturaDetalleItemRead]
 
 

@@ -13,6 +13,7 @@ from app.schemas.factura import (
     FacturaDataResponse,
     EncabezadoRead,
     FacturaDetalleItemRead,
+    FacturaFiscalBlock,
 )
 from app.schemas.anulacion import AnulacionCreate, AnulacionRead
 
@@ -56,7 +57,9 @@ def _build_factura_response(factura: Factura) -> FacturaDataResponse:
         total=float(factura.total_general),
     )
 
-    return FacturaDataResponse(encabezado=encabezado, detalle=detalle_items)
+    fiscal = FacturaFiscalBlock()
+
+    return FacturaDataResponse(encabezado=encabezado, fiscal=fiscal, detalle=detalle_items)
 
 
 @router.get("/", response_model=list[FacturaDataResponse])
