@@ -60,18 +60,18 @@ def _build_factura_response(factura: Factura) -> FacturaDataResponse:
 
     fiscal = FacturaFiscalBlock(
         requiere_ncf=factura.ncf is not None,
-        ncf=factura.ncf,
-        tipo_ncf=factura.tipo_ncf,
-        rnc_emisor=factura.rnc_emisor,
-        razon_social_emisor=factura.razon_social_emisor,
-        rnc_cliente=factura.rnc_cliente,
-        nombre_cliente_fiscal=factura.nombre_cliente_fiscal,
+        ncf=factura.ncf,  # type: ignore[arg-type]
+        tipo_ncf=factura.tipo_ncf,  # type: ignore[arg-type]
+        rnc_emisor=factura.rnc_emisor,  # type: ignore[arg-type]
+        razon_social_emisor=factura.razon_social_emisor,  # type: ignore[arg-type]
+        rnc_cliente=factura.rnc_cliente,  # type: ignore[arg-type]
+        nombre_cliente_fiscal=factura.nombre_cliente_fiscal,  # type: ignore[arg-type]
         fecha_vencimiento_ncf=(
             factura.fecha_vencimiento_ncf.strftime("%Y-%m-%d")
             if factura.fecha_vencimiento_ncf
             else None
         ),
-        estado_fiscal=factura.estado_fiscal,
+        estado_fiscal=factura.estado_fiscal,  # type: ignore[arg-type]
     )
 
     return FacturaDataResponse(encabezado=encabezado, fiscal=fiscal, detalle=detalle_items)
