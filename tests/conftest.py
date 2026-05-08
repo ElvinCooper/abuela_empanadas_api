@@ -45,9 +45,11 @@ def build_test_database_url(database_url: str, derive_database_name: bool) -> st
 pg_user = os.getenv("TEST_POSTGRES_USER")
 pg_pass = os.getenv("TEST_POSTGRES_PASSWORD")
 pg_db = os.getenv("TEST_POSTGRES_DB")
+pg_host = os.getenv("TEST_POSTGRES_HOST", "127.0.0.1")
+pg_port = os.getenv("TEST_POSTGRES_PORT", "5433")
 if pg_user and pg_pass and pg_db:
     configured_test_database_url = (
-        f"postgresql://{pg_user}:{pg_pass}@127.0.0.1:5433/{pg_db}"
+        f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
     )
 else:
     configured_test_database_url = (
