@@ -1,7 +1,10 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
     DATABASE_URL: str = (
         "postgresql+asyncpg://user:password@localhost:5432/abuela_empanadas"
     )
@@ -11,11 +14,6 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Abuela Empanadas API"
     DEBUG: bool = False
     TEST_DATABASE_URL: str | None = None
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"
 
 
 settings = Settings()
