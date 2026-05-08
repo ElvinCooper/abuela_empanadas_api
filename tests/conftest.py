@@ -65,7 +65,7 @@ else:
     )
 
 
-@pytest_asyncio.fixture(scope="module")
+@pytest_asyncio.fixture(scope="session")
 async def test_engine():
     engine = create_async_engine(
         TEST_DATABASE_URL,
@@ -79,10 +79,9 @@ async def test_engine():
     await engine.dispose()
 
 
-@pytest_asyncio.fixture(scope="module")
+@pytest_asyncio.fixture(scope="session")
 async def setup_database(test_engine):
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
         from app.models.sucursal import Sucursal
         from app.models.status_factura import StatusFactura
@@ -179,39 +178,26 @@ async def setup_database(test_engine):
             )
         )
     yield
-    async with test_engine.begin() as conn:
-        await conn.execute(
-            sa.text(
-                """
-                TRUNCATE TABLE
-                    anulaciones,
-                    factura_detalles,
-                    facturas,
-                    cierres_diarios,
-                    egresos,
-                    stocks,
-                    productos,
-                    insumos,
-                    usuarios,
-                    sucursales,
-                    proveedores,
-                    status_factura,
-                    monedas,
-                    metodo_pago
-                RESTART IDENTITY CASCADE
-                """
-            )
-        )
 
 
 @pytest_asyncio.fixture(scope="module")
 async def db_session(test_engine, setup_database):
+    conn = await test_engine.connect()
+    transaction = await conn.begin()
+
     async_session = sessionmaker(
-        test_engine, class_=AsyncSession, expire_on_commit=False
+        bind=conn, class_=AsyncSession, expire_on_commit=False
     )
     async with async_session() as session:
+        original_commit = session.commit
+        async def _flush_only():
+            await session.flush()
+        session.commit = _flush_only
         yield session
-        await session.rollback()
+        session.commit = original_commit
+
+    await transaction.rollback()
+    await conn.close()
 
 
 @pytest_asyncio.fixture(scope="module")
@@ -245,7 +231,7 @@ async def usuario_admin(db_session):
             activo=True,
         )
         db_session.add(user)
-        await db_session.commit()
+        await db_session.flush()
         await db_session.refresh(user)
     user.token = create_access_token({"sub": str(user.id), "rol": user.rol})
     return user
