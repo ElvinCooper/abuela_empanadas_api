@@ -1,4 +1,5 @@
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, text
+from datetime import date
+from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, Integer, String, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
@@ -39,6 +40,14 @@ class Factura(Base):
     itbis = Column(Float, nullable=False, server_default=text("0"), default=0)
     total_general = Column(Float, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    ncf = Column(String(19), nullable=True)
+    tipo_ncf = Column(String(5), nullable=True)
+    rnc_emisor = Column(String(9), nullable=True)
+    razon_social_emisor = Column(String(200), nullable=True)
+    rnc_cliente = Column(String(9), nullable=True)
+    nombre_cliente_fiscal = Column(String(200), nullable=True)
+    fecha_vencimiento_ncf = Column(Date, nullable=True)
+    estado_fiscal = Column(String(20), nullable=True)
 
     sucursal = relationship("Sucursal", back_populates="facturas")
     usuario = relationship("Usuario")

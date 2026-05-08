@@ -15,7 +15,7 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    op.add_column("facturas", sa.Column("ncf", sa.String(11), nullable=True))
+    op.add_column("facturas", sa.Column("ncf", sa.String(19), nullable=True))
     op.add_column("facturas", sa.Column("tipo_ncf", sa.String(5), nullable=True))
     op.add_column("facturas", sa.Column("rnc_emisor", sa.String(9), nullable=True))
     op.add_column("facturas", sa.Column("razon_social_emisor", sa.String(200), nullable=True))

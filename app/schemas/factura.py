@@ -3,6 +3,14 @@ from pydantic import BaseModel, computed_field
 from app.schemas.common import BaseSchema
 
 
+class FacturaFiscalInput(BaseModel):
+    ncf: Optional[str] = None
+    tipo_ncf: Optional[str] = None
+    rnc_cliente: Optional[str] = None
+    nombre_cliente_fiscal: Optional[str] = None
+    fecha_vencimiento_ncf: Optional[str] = None
+
+
 class FacturaDetalleItemCreate(BaseModel):
     id_producto: int
     cantidad: int
@@ -60,6 +68,7 @@ class FacturaCreate(BaseModel):
     id_moneda: int = 1
     id_metodo_pago: int = 1
     porcentaje_descuento: float = 0.0
+    fiscal: Optional[FacturaFiscalInput] = None
     detalle: list[FacturaDetalleItemCreate]
 
 

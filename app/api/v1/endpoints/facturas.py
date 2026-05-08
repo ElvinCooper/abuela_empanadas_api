@@ -1,3 +1,4 @@
+from datetime import date as date_type
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -57,7 +58,21 @@ def _build_factura_response(factura: Factura) -> FacturaDataResponse:
         total=float(factura.total_general),
     )
 
-    fiscal = FacturaFiscalBlock()
+    fiscal = FacturaFiscalBlock(
+        requiere_ncf=factura.ncf is not None,
+        ncf=factura.ncf,
+        tipo_ncf=factura.tipo_ncf,
+        rnc_emisor=factura.rnc_emisor,
+        razon_social_emisor=factura.razon_social_emisor,
+        rnc_cliente=factura.rnc_cliente,
+        nombre_cliente_fiscal=factura.nombre_cliente_fiscal,
+        fecha_vencimiento_ncf=(
+            factura.fecha_vencimiento_ncf.strftime("%Y-%m-%d")
+            if factura.fecha_vencimiento_ncf
+            else None
+        ),
+        estado_fiscal=factura.estado_fiscal,
+    )
 
     return FacturaDataResponse(encabezado=encabezado, fiscal=fiscal, detalle=detalle_items)
 
@@ -128,6 +143,19 @@ async def create_factura(
     itbis_total = sum(d["itbis_aplicado"] for d in detalle_items_data)
     total_general = base_imponible_total + itbis_total
 
+    fiscal_data = {}
+    if factura.fiscal:
+        fecha_venc = None
+        if factura.fiscal.fecha_vencimiento_ncf:
+            fecha_venc = date_type.fromisoformat(factura.fiscal.fecha_vencimiento_ncf)
+        fiscal_data = {
+            "ncf": factura.fiscal.ncf,
+            "tipo_ncf": factura.fiscal.tipo_ncf,
+            "rnc_cliente": factura.fiscal.rnc_cliente,
+            "nombre_cliente_fiscal": factura.fiscal.nombre_cliente_fiscal,
+            "fecha_vencimiento_ncf": fecha_venc,
+        }
+
     new_factura = Factura(
         sucursal_id=current_user.sucursal_id,
         usuario_id=factura.id_cliente,
@@ -139,6 +167,7 @@ async def create_factura(
         descuento=descuento_total,
         itbis=itbis_total,
         total_general=total_general,
+        **fiscal_data,
     )
     db.add(new_factura)
     await db.flush()

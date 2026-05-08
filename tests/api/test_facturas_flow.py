@@ -47,6 +47,43 @@ async def test_create_factura(async_client, usuario_admin):
 
 
 @pytest.mark.asyncio
+async def test_create_factura_with_fiscal_data(async_client, usuario_admin):
+    global _factura_id
+    response = await async_client.post(
+        "/api/v1/facturas/",
+        json={
+            "id_cliente": usuario_admin.id,
+            "id_moneda": 1,
+            "id_metodo_pago": 1,
+            "detalle": [
+                {"id_producto": 1, "cantidad": 1, "itbis": 18},
+            ],
+            "fiscal": {
+                "ncf": "E310000000001",
+                "tipo_ncf": "B01",
+                "rnc_cliente": "123456789",
+                "nombre_cliente_fiscal": "Cliente SA",
+                "fecha_vencimiento_ncf": "2026-12-31",
+            },
+        },
+        headers={"Authorization": f"Bearer {usuario_admin.token}"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    fiscal = data["fiscal"]
+    assert fiscal["requiere_ncf"] is True
+    assert fiscal["ncf"] == "E310000000001"
+    assert fiscal["tipo_ncf"] == "B01"
+    assert fiscal["rnc_cliente"] == "123456789"
+    assert fiscal["nombre_cliente_fiscal"] == "Cliente SA"
+    assert fiscal["fecha_vencimiento_ncf"] == "2026-12-31"
+    assert fiscal["rnc_emisor"] is None
+    assert fiscal["razon_social_emisor"] is None
+    assert fiscal["estado_fiscal"] is None
+    _factura_id = data["encabezado"]["id_factura"]
+
+
+@pytest.mark.asyncio
 async def test_list_facturas(async_client, usuario_admin):
     response = await async_client.get(
         "/api/v1/facturas/",
