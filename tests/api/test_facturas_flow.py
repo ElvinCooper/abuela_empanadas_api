@@ -28,7 +28,18 @@ async def test_create_factura(async_client, usuario_admin):
     assert encabezado["id_cliente"] == usuario_admin.id
     assert encabezado["subtotal"] > 0
     assert encabezado["descuento"] > 0
-    assert encabezado["total_general"] > 0
+    assert encabezado["base_imponible"] > 0
+    assert encabezado["total_itbis"] > 0
+    assert encabezado["total"] > 0
+    assert len(data["detalle"]) > 0
+    detalle = data["detalle"][0]
+    assert detalle["descripcion"] != ""
+    assert detalle["precio_unitario"] > 0
+    assert detalle["subtotal_linea"] > 0
+    assert detalle["base_imponible"] > 0
+    assert detalle["porcentaje_itbis"] >= 0
+    assert detalle["itbis"] >= 0
+    assert detalle["total_linea"] > 0
     _factura_id = encabezado["id_factura"]
 
 

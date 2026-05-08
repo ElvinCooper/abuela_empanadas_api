@@ -11,12 +11,14 @@ class FacturaDetalleItemCreate(BaseModel):
 
 class FacturaDetalleItemRead(BaseModel):
     id_producto: int
+    descripcion: str
     cantidad: int
-    precio: float
-    descuento: float
+    precio_unitario: float
+    subtotal_linea: float
+    descuento_linea: float
     base_imponible: float
+    porcentaje_itbis: float
     itbis: float
-    itbis_aplicado: float
     total_linea: float
 
 
@@ -24,14 +26,15 @@ class EncabezadoRead(BaseModel):
     id_factura: int
     fecha: str
     id_cliente: int
-    subtotal: float
-    porcentaje_descuento: float
-    descuento: float
-    itbis: float
-    total_general: float
     moneda: str
     metodo_pago: str
     estado: str
+    subtotal: float
+    porcentaje_descuento: float
+    descuento: float
+    base_imponible: float
+    total_itbis: float
+    total: float
 
 
 class FacturaDataResponse(BaseModel):

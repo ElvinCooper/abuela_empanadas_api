@@ -22,33 +22,38 @@ router = APIRouter()
 def _build_factura_response(factura: Factura) -> FacturaDataResponse:
     detalle_items = []
     for d in factura.detalles:
+        subtotal_linea = d.cantidad * d.precio_unitario
         detalle_items.append(
             FacturaDetalleItemRead(
                 id_producto=d.producto_id,
+                descripcion=d.producto.nombre if d.producto else "",
                 cantidad=d.cantidad,
-                precio=d.precio_unitario,
-                descuento=d.descuento,
-                base_imponible=d.base_imponible,
-                itbis=d.itbis,
-                itbis_aplicado=d.itbis_aplicado,
-                total_linea=d.total_linea,
+                precio_unitario=float(d.precio_unitario),
+                subtotal_linea=float(subtotal_linea),
+                descuento_linea=float(d.descuento),
+                base_imponible=float(d.base_imponible),
+                porcentaje_itbis=float(d.itbis),
+                itbis=float(d.itbis_aplicado),
+                total_linea=float(d.total_linea),
             )
         )
 
-    fecha_str = factura.created_at.strftime("%d-%m-%Y") if factura.created_at else ""
+    fecha_str = factura.created_at.strftime("%Y-%m-%d %H:%M:%S") if factura.created_at else ""
+    base_imponible = float(factura.subtotal - factura.descuento)
 
     encabezado = EncabezadoRead(
         id_factura=int(factura.id),
         fecha=fecha_str,
         id_cliente=int(factura.usuario_id),
-        subtotal=float(factura.subtotal),
-        porcentaje_descuento=float(factura.porcentaje_descuento),
-        descuento=float(factura.descuento),
-        itbis=float(factura.itbis),
-        total_general=float(factura.total_general),
         moneda=factura.moneda.nombre if factura.moneda else "",
         metodo_pago=factura.metodo_pago.nombre if factura.metodo_pago else "",
         estado=factura.status.nombre if factura.status else "",
+        subtotal=float(factura.subtotal),
+        porcentaje_descuento=float(factura.porcentaje_descuento),
+        descuento=float(factura.descuento),
+        base_imponible=base_imponible,
+        total_itbis=float(factura.itbis),
+        total=float(factura.total_general),
     )
 
     return FacturaDataResponse(encabezado=encabezado, detalle=detalle_items)
@@ -66,7 +71,7 @@ async def list_facturas(
             selectinload(Factura.moneda),
             selectinload(Factura.metodo_pago),
             selectinload(Factura.status),
-            selectinload(Factura.detalles),
+            selectinload(Factura.detalles).selectinload(FacturaDetalle.producto),
         )
         .order_by(Factura.created_at.desc())
     )
@@ -142,8 +147,16 @@ async def create_factura(
     await db.commit()
     await db.refresh(
         new_factura,
-        attribute_names=["detalles", "sucursal", "moneda", "metodo_pago", "status"],
+        attribute_names=[
+            "detalles",
+            "sucursal",
+            "moneda",
+            "metodo_pago",
+            "status",
+        ],
     )
+    for detalle in new_factura.detalles:
+        await db.refresh(detalle, attribute_names=["producto"])
 
     return _build_factura_response(new_factura)
 
