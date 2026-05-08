@@ -236,3 +236,28 @@ async def usuario_admin(db_session):
         await db_session.refresh(user)
     user.token = create_access_token({"sub": str(user.id), "rol": user.rol})
     return user
+
+
+@pytest_asyncio.fixture(scope="module")
+async def usuario_standard(db_session):
+    from app.models.usuario import Usuario, RolEnum
+    from app.core.security import create_access_token, hash_password
+
+    result = await db_session.execute(
+        sa.select(Usuario).where(Usuario.username == "standard_user")
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        user = Usuario(
+            sucursal_id=1,
+            nombre="Standard User",
+            username="standard_user",
+            password_hash=hash_password("standard123"),
+            rol=RolEnum.standard,
+            activo=True,
+        )
+        db_session.add(user)
+        await db_session.flush()
+        await db_session.refresh(user)
+    user.token = create_access_token({"sub": str(user.id), "rol": user.rol})
+    return user
