@@ -97,11 +97,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         python -c "from app.main import app; print('Build successful')"
-    
-    - name: Build Docker image
-      if: github.ref == 'refs/heads/main'
-      run: |
-        docker build -t abuela-empanadas-api:${{ github.sha }} .
+
   
   deploy-staging:
     runs-on: ubuntu-latest
