@@ -57,7 +57,7 @@ else:
     )
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="module")
 async def test_engine():
     engine = create_async_engine(
         TEST_DATABASE_URL,
@@ -71,33 +71,11 @@ async def test_engine():
     await engine.dispose()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="module")
 async def setup_database(test_engine):
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-        await conn.execute(
-            sa.text(
-                """
-                TRUNCATE TABLE
-                    anulaciones,
-                    factura_detalles,
-                    facturas,
-                    cierres_diarios,
-                    egresos,
-                    stocks,
-                    productos,
-                    insumos,
-                    usuarios,
-                    sucursales,
-                    proveedores,
-                    status_factura,
-                    monedas,
-                    metodo_pago
-                RESTART IDENTITY CASCADE
-                """
-            )
-        )
         from app.models.sucursal import Sucursal
         from app.models.status_factura import StatusFactura
         from app.models.moneda import Moneda
@@ -218,7 +196,7 @@ async def setup_database(test_engine):
         )
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="module")
 async def db_session(test_engine, setup_database):
     async_session = sessionmaker(
         test_engine, class_=AsyncSession, expire_on_commit=False
@@ -228,7 +206,7 @@ async def db_session(test_engine, setup_database):
         await session.rollback()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="module")
 async def async_client(db_session):
     async def override_get_db():
         yield db_session
@@ -240,21 +218,26 @@ async def async_client(db_session):
     app.dependency_overrides.clear()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="module")
 async def usuario_admin(db_session):
     from app.models.usuario import Usuario, RolEnum
     from app.core.security import create_access_token, hash_password
 
-    user = Usuario(
-        sucursal_id=1,
-        nombre="Admin",
-        username="admin",
-        password_hash=hash_password("admin123"),
-        rol=RolEnum.admin,
-        activo=True,
+    result = await db_session.execute(
+        sa.select(Usuario).where(Usuario.username == "admin")
     )
-    db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
+    user = result.scalar_one_or_none()
+    if user is None:
+        user = Usuario(
+            sucursal_id=1,
+            nombre="Admin",
+            username="admin",
+            password_hash=hash_password("admin123"),
+            rol=RolEnum.admin,
+            activo=True,
+        )
+        db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
     user.token = create_access_token({"sub": str(user.id), "rol": user.rol})
     return user
