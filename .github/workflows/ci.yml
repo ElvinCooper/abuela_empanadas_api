@@ -51,8 +51,8 @@ jobs:
     - name: Run linting
       run: |
         pip install flake8 mypy
-        flake8 app/ --count --select=E9,F63,F7,W191,E100,E101,E111,E112,E113,E301,E302,E305
-        mypy app/ --ignore-missing-imports
+        python -m flake8 app/ --count --select=E9,F63,F7,W191,E100,E101,E111,E112,E113,E301,E302,E305
+        python -m mypy app/ --ignore-missing-imports
     
     - name: Run tests with coverage
       env:
