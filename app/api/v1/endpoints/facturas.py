@@ -117,7 +117,7 @@ async def create_factura(
                 detail=f"Producto con id {item.id_producto} no encontrado",
             )
 
-        precio = int(producto.precio)
+        precio = float(producto.precio)
         precio_linea = precio * item.cantidad
         descuento_linea = precio_linea * (factura.porcentaje_descuento / 100)
         base_imponible = precio_linea - descuento_linea
