@@ -1,7 +1,7 @@
-from datetime import date as date_type
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import date as date_type, datetime, time
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 from sqlalchemy.orm import selectinload
 from app.core.dependencies import get_db, get_current_user
 from app.models.usuario import Usuario
@@ -79,9 +79,20 @@ def _build_factura_response(factura: Factura) -> FacturaDataResponse:
 
 @router.get("/", response_model=list[FacturaDataResponse])
 async def list_facturas(
+    fecha_inicio: date_type = Query(..., description="Fecha inicial del rango (YYYY-MM-DD)"),
+    fecha_fin: date_type = Query(..., description="Fecha final del rango (YYYY-MM-DD)"),
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
+    if fecha_fin < fecha_inicio:
+        raise HTTPException(
+            status_code=400,
+            detail="La fecha final no puede ser menor que la fecha inicial",
+        )
+
+    fecha_inicio_dt = datetime.combine(fecha_inicio, time.min)
+    fecha_fin_dt = datetime.combine(fecha_fin, time.max)
+
     result = await db.execute(
         select(Factura)
         .options(
@@ -91,9 +102,15 @@ async def list_facturas(
             selectinload(Factura.status),
             selectinload(Factura.detalles).selectinload(FacturaDetalle.producto),
         )
+        .where(and_(Factura.created_at >= fecha_inicio_dt, Factura.created_at <= fecha_fin_dt))
         .order_by(Factura.created_at.desc())
     )
     facturas = result.scalars().all()
+    if not facturas:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No hay facturas para el rango de fechas indicado: {fecha_inicio} - {fecha_fin}",
+        )
     return [_build_factura_response(f) for f in facturas]
 
 
