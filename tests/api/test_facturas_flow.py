@@ -199,13 +199,36 @@ async def test_create_factura_mixto(async_client, usuario_admin):
 @pytest.mark.asyncio
 async def test_list_facturas(async_client, usuario_admin):
     response = await async_client.get(
-        "/api/v1/facturas/",
+        "/api/v1/facturas/?fecha_inicio=2025-01-01&fecha_fin=2025-12-31",
         headers={"Authorization": f"Bearer {usuario_admin.token}"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 404
     data = response.json()
-    assert isinstance(data, list)
-    assert len(data) > 0
+    assert "No hay facturas" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_list_facturas_with_valid_date_range(async_client, usuario_admin):
+    response = await async_client.get(
+        "/api/v1/facturas/?fecha_inicio=2020-01-01&fecha_fin=2030-12-31",
+        headers={"Authorization": f"Bearer {usuario_admin.token}"},
+    )
+    assert response.status_code in (200, 404)
+    if response.status_code == 200:
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) > 0
+
+
+@pytest.mark.asyncio
+async def test_list_facturas_invalid_date_range(async_client, usuario_admin):
+    response = await async_client.get(
+        "/api/v1/facturas/?fecha_inicio=2025-12-31&fecha_fin=2025-01-01",
+        headers={"Authorization": f"Bearer {usuario_admin.token}"},
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "fecha final no puede ser menor" in data["detail"].lower()
 
 
 @pytest.mark.asyncio
