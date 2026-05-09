@@ -46,3 +46,21 @@ async def test_create_usuario_forbidden_for_standard(async_client, usuario_stand
     )
     assert response.status_code == 403
     assert response.json()["detail"] == "Insufficient permissions"
+
+
+@pytest.mark.asyncio
+async def test_create_usuario_without_nombre(async_client, usuario_admin):
+    response = await async_client.post(
+        "/api/v1/usuarios/",
+        json={
+            "sucursal_id": 1,
+            "username": "user_sin_nombre",
+            "password": "pass123",
+            "rol": "standard",
+        },
+        headers={"Authorization": f"Bearer {usuario_admin.token}"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["username"] == "user_sin_nombre"
+    assert data["nombre"] == "user_sin_nombre"
