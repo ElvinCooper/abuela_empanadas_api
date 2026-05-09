@@ -40,22 +40,22 @@ def _build_factura_response(factura: Factura) -> FacturaDataResponse:
             )
         )
 
-    fecha_str = factura.created_at.strftime("%Y-%m-%d %H:%M:%S") if factura.created_at else ""
-    base_imponible = float(factura.subtotal - factura.descuento)
+    fecha_str = factura.created_at.strftime("%Y-%m-%d %H:%M:%S") if factura.created_at is not None else ""
+    base_imponible = float(factura.subtotal - factura.descuento)  # type: ignore[arg-type]
 
     encabezado = EncabezadoRead(
-        id_factura=int(factura.id),
+        id_factura=int(factura.id),  # type: ignore[arg-type]
         fecha=fecha_str,
-        id_cliente=int(factura.usuario_id),
+        id_cliente=int(factura.usuario_id),  # type: ignore[arg-type]
         moneda=factura.moneda.nombre if factura.moneda else "",
         metodo_pago=factura.metodo_pago.nombre if factura.metodo_pago else "",
         estado=factura.status.nombre if factura.status else "",
-        subtotal=float(factura.subtotal),
-        porcentaje_descuento=float(factura.porcentaje_descuento),
-        descuento=float(factura.descuento),
+        subtotal=float(factura.subtotal),  # type: ignore[arg-type]
+        porcentaje_descuento=float(factura.porcentaje_descuento),  # type: ignore[arg-type]
+        descuento=float(factura.descuento),  # type: ignore[arg-type]
         base_imponible=base_imponible,
-        total_itbis=float(factura.itbis),
-        total=float(factura.total_general),
+        total_itbis=float(factura.itbis),  # type: ignore[arg-type]
+        total=float(factura.total_general),  # type: ignore[arg-type]
     )
 
     fiscal = FacturaFiscalBlock(
@@ -68,7 +68,7 @@ def _build_factura_response(factura: Factura) -> FacturaDataResponse:
         nombre_cliente_fiscal=factura.nombre_cliente_fiscal,  # type: ignore[arg-type]
         fecha_vencimiento_ncf=(
             factura.fecha_vencimiento_ncf.strftime("%Y-%m-%d")
-            if factura.fecha_vencimiento_ncf
+            if factura.fecha_vencimiento_ncf is not None
             else None
         ),
         estado_fiscal=factura.estado_fiscal,  # type: ignore[arg-type]
@@ -134,7 +134,7 @@ async def create_factura(
                 detail=f"Producto con id {item.id_producto} no encontrado",
             )
 
-        precio = item.precio_unitario if item.precio_unitario is not None else float(producto.precio)
+        precio = item.precio_unitario if item.precio_unitario is not None else float(producto.precio)  # type: ignore[arg-type]
         precio_linea = precio * item.cantidad
         if item.descuento is not None:
             descuento_linea = item.descuento
