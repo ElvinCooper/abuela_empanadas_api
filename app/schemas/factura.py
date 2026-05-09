@@ -14,7 +14,9 @@ class FacturaFiscalInput(BaseModel):
 class FacturaDetalleItemCreate(BaseModel):
     id_producto: int
     cantidad: int
-    itbis: int = 0
+    itbis: float = 0.0
+    precio_unitario: Optional[float] = None
+    descuento: Optional[float] = None
 
 
 class FacturaDetalleItemRead(BaseModel):

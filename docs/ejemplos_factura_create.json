@@ -1,0 +1,40 @@
+{
+  "ejemplo_1_sin_override": {
+    "descripcion": "Toma precio del producto en BD y descuento del % global",
+    "payload": {
+      "id_cliente": 1,
+      "id_moneda": 1,
+      "id_metodo_pago": 1,
+      "porcentaje_descuento": 10,
+      "detalle": [
+        { "id_producto": 1, "cantidad": 2, "itbis": 18 },
+        { "id_producto": 2, "cantidad": 1, "itbis": 18 }
+      ]
+    }
+  },
+  "ejemplo_2_precio_personalizado": {
+    "descripcion": "Usa precio_unitario enviado, ignora el precio de BD",
+    "payload": {
+      "id_cliente": 1,
+      "id_moneda": 1,
+      "id_metodo_pago": 1,
+      "porcentaje_descuento": 10,
+      "detalle": [
+        { "id_producto": 1, "cantidad": 2, "itbis": 18, "precio_unitario": 150.00 }
+      ]
+    }
+  },
+  "ejemplo_3_descuento_por_linea": {
+    "descripcion": "Mezcla: 1er item con precio y descuento fijo, 2do item usa BD y % global",
+    "payload": {
+      "id_cliente": 1,
+      "id_moneda": 1,
+      "id_metodo_pago": 1,
+      "porcentaje_descuento": 10,
+      "detalle": [
+        { "id_producto": 1, "cantidad": 2, "itbis": 18, "precio_unitario": 200.00, "descuento": 50.00 },
+        { "id_producto": 2, "cantidad": 1, "itbis": 18 }
+      ]
+    }
+  }
+}

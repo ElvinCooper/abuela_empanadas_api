@@ -84,6 +84,119 @@ async def test_create_factura_with_fiscal_data(async_client, usuario_admin):
 
 
 @pytest.mark.asyncio
+async def test_create_factura_con_precio_personalizado(async_client, usuario_admin):
+    global _factura_id
+    response = await async_client.post(
+        "/api/v1/facturas/",
+        json={
+            "id_cliente": usuario_admin.id,
+            "id_moneda": 1,
+            "id_metodo_pago": 1,
+            "porcentaje_descuento": 0,
+            "detalle": [
+                {"id_producto": 1, "cantidad": 2, "itbis": 18, "precio_unitario": 150.00},
+            ],
+        },
+        headers={"Authorization": f"Bearer {usuario_admin.token}"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    detalle = data["detalle"][0]
+    assert detalle["precio_unitario"] == 150.0
+    assert detalle["subtotal_linea"] == 300.0
+    assert detalle["descuento_linea"] == 0.0
+    assert detalle["base_imponible"] == 300.0
+    assert detalle["itbis"] == 54.0
+    assert detalle["total_linea"] == 354.0
+    enc = data["encabezado"]
+    assert enc["subtotal"] == 300.0
+    assert enc["descuento"] == 0.0
+    assert enc["base_imponible"] == 300.0
+    assert enc["total_itbis"] == 54.0
+    assert enc["total"] == 354.0
+    _factura_id = enc["id_factura"]
+
+
+@pytest.mark.asyncio
+async def test_create_factura_con_descuento_por_linea(async_client, usuario_admin):
+    global _factura_id
+    response = await async_client.post(
+        "/api/v1/facturas/",
+        json={
+            "id_cliente": usuario_admin.id,
+            "id_moneda": 1,
+            "id_metodo_pago": 1,
+            "porcentaje_descuento": 10,
+            "detalle": [
+                {"id_producto": 1, "cantidad": 2, "itbis": 18, "precio_unitario": 200.00, "descuento": 50.00},
+            ],
+        },
+        headers={"Authorization": f"Bearer {usuario_admin.token}"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    detalle = data["detalle"][0]
+    assert detalle["precio_unitario"] == 200.0
+    assert detalle["subtotal_linea"] == 400.0
+    assert detalle["descuento_linea"] == 50.0
+    assert detalle["base_imponible"] == 350.0
+    assert detalle["itbis"] == 63.0
+    assert detalle["total_linea"] == 413.0
+    enc = data["encabezado"]
+    assert enc["subtotal"] == 400.0
+    assert enc["descuento"] == 50.0
+    assert enc["base_imponible"] == 350.0
+    assert enc["total_itbis"] == 63.0
+    assert enc["total"] == 413.0
+    _factura_id = enc["id_factura"]
+
+
+@pytest.mark.asyncio
+async def test_create_factura_mixto(async_client, usuario_admin):
+    global _factura_id
+    response = await async_client.post(
+        "/api/v1/facturas/",
+        json={
+            "id_cliente": usuario_admin.id,
+            "id_moneda": 1,
+            "id_metodo_pago": 1,
+            "porcentaje_descuento": 10,
+            "detalle": [
+                {"id_producto": 1, "cantidad": 2, "itbis": 18, "precio_unitario": 200.00, "descuento": 50.00},
+                {"id_producto": 2, "cantidad": 1, "itbis": 18},
+            ],
+        },
+        headers={"Authorization": f"Bearer {usuario_admin.token}"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    items = data["detalle"]
+    assert len(items) == 2
+
+    assert items[0]["precio_unitario"] == 200.0
+    assert items[0]["subtotal_linea"] == 400.0
+    assert items[0]["descuento_linea"] == 50.0
+    assert items[0]["base_imponible"] == 350.0
+    assert items[0]["itbis"] == 63.0
+    assert items[0]["total_linea"] == 413.0
+
+    assert items[1]["precio_unitario"] == 120.0
+    assert items[1]["subtotal_linea"] == 120.0
+    assert items[1]["descuento_linea"] == 12.0
+    assert items[1]["base_imponible"] == 108.0
+    assert items[1]["itbis"] == pytest.approx(19.44, rel=1e-3)
+    assert items[1]["total_linea"] == pytest.approx(127.44, rel=1e-3)
+
+    enc = data["encabezado"]
+    assert enc["subtotal"] == 520.0
+    assert enc["descuento"] == 62.0
+    assert enc["base_imponible"] == 458.0
+    assert enc["total_itbis"] == pytest.approx(82.44, rel=1e-3)
+    assert enc["total"] == pytest.approx(540.44, rel=1e-3)
+    _factura_id = enc["id_factura"]
+
+
+@pytest.mark.asyncio
 async def test_list_facturas(async_client, usuario_admin):
     response = await async_client.get(
         "/api/v1/facturas/",
