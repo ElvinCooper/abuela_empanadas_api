@@ -13,7 +13,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/")
+@router.get("/", response_model=list[CierreDiarioRead])
 async def list_cierres(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
