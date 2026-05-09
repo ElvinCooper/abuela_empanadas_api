@@ -15,6 +15,7 @@ class Producto(Base):
     precio = Column(Integer, nullable=False)
     stock = Column(Integer, default=0)
     activo = Column(Boolean, default=True)
+    icon_img = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     sucursal = relationship("Sucursal", back_populates="productos")

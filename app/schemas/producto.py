@@ -9,6 +9,7 @@ class ProductoCreate(BaseSchema):
     descripcion: Optional[str] = None
     precio: int
     stock: int = 0
+    icon_img: Optional[str] = None
 
 
 class ProductoUpdate(BaseSchema):
@@ -17,6 +18,7 @@ class ProductoUpdate(BaseSchema):
     precio: Optional[int] = None
     stock: Optional[int] = None
     activo: Optional[bool] = None
+    icon_img: Optional[str] = None
 
 
 class ProductoRead(BaseSchema):
@@ -30,3 +32,4 @@ class ProductoRead(BaseSchema):
     precio: int
     stock: int
     activo: bool
+    icon_img: Optional[str] = None
