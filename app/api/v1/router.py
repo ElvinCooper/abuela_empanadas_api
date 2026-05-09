@@ -25,12 +25,8 @@ api_router.include_router(categorias.router, prefix="/categorias", tags=["catego
 api_router.include_router(facturas.router, prefix="/facturas", tags=["facturas"])
 api_router.include_router(cierres.router, prefix="/cierres", tags=["cierres"])
 api_router.include_router(egresos.router, prefix="/gastos", tags=["gastos"])
-api_router.include_router(
-    proveedores.router, prefix="/proveedores", tags=["proveedores"]
-)
+api_router.include_router(proveedores.router, prefix="/proveedores", tags=["proveedores"])
 api_router.include_router(insumos.router, prefix="/insumos", tags=["insumos"])
 api_router.include_router(reportes.router, prefix="/reportes", tags=["reportes"])
 api_router.include_router(monedas.router, prefix="/monedas", tags=["monedas"])
-api_router.include_router(
-    metodo_pago.router, prefix="/metodos-pago", tags=["metodos-pago"]
-)
+api_router.include_router(metodo_pago.router, prefix="/metodos-pago", tags=["metodos-pago"])
