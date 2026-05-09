@@ -27,7 +27,7 @@ async def create_usuario(
 ):
     new_usuario = Usuario(
         sucursal_id=usuario.sucursal_id,
-        nombre=usuario.nombre,
+        nombre=usuario.nombre if usuario.nombre else usuario.username,
         username=usuario.username,
         password_hash=hash_password(usuario.password),
         rol=usuario.rol,

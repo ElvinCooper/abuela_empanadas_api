@@ -5,7 +5,7 @@ from app.models.usuario import RolEnum
 
 class UsuarioCreate(BaseSchema):
     sucursal_id: int
-    nombre: str
+    nombre: Optional[str] = None
     username: str
     password: str
     rol: RolEnum
