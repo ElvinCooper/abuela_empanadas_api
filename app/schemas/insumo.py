@@ -22,5 +22,5 @@ class InsumoRead(BaseSchema):
     proveedor_id: Optional[int] = None
     proveedor_nombre: Optional[str] = None
     nombre: str
-    stock: int
+    stock: Optional[int] = None
     activo: bool
