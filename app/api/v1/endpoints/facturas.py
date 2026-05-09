@@ -117,9 +117,12 @@ async def create_factura(
                 detail=f"Producto con id {item.id_producto} no encontrado",
             )
 
-        precio = float(producto.precio)
+        precio = item.precio_unitario if item.precio_unitario is not None else float(producto.precio)
         precio_linea = precio * item.cantidad
-        descuento_linea = precio_linea * (factura.porcentaje_descuento / 100)
+        if item.descuento is not None:
+            descuento_linea = item.descuento
+        else:
+            descuento_linea = precio_linea * (factura.porcentaje_descuento / 100)
         base_imponible = precio_linea - descuento_linea
         itbis_aplicado = base_imponible * (item.itbis / 100)
         total_linea = base_imponible + itbis_aplicado
@@ -138,7 +141,7 @@ async def create_factura(
         )
         subtotal += precio_linea
 
-    descuento_total = subtotal * (factura.porcentaje_descuento / 100)
+    descuento_total = sum(d["descuento"] for d in detalle_items_data)
     base_imponible_total = subtotal - descuento_total
     itbis_total = sum(d["itbis_aplicado"] for d in detalle_items_data)
     total_general = base_imponible_total + itbis_total
