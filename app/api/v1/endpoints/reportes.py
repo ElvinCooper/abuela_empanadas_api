@@ -27,6 +27,12 @@ async def generate_reporte(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
+    if hasta < desde:
+        raise HTTPException(
+            status_code=400,
+            detail="la fecha_fin no puede ser menor a la fecha_inicio"
+        )
+
     facturas_result = await db.execute(
         select(func.sum(Factura.total_general)).where(
             and_(
@@ -48,6 +54,12 @@ async def generate_reporte(
     )
     total_gastos = float(gastos_result.scalar() or 0)
     utilidad = total_ventas - total_gastos
+
+    if total_ventas == 0 and total_gastos == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"no existen datos para el rango de fechas {desde.strftime('%d-%m-%Y')} hasta {hasta.strftime('%d-%m-%Y')}"
+        )
 
     offset = timezone(timedelta(hours=-4))
     ahora = datetime.now(offset)
@@ -154,6 +166,12 @@ async def generar_reporte_ventas(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
+    if hasta < desde:
+        raise HTTPException(
+            status_code=400,
+            detail="la fecha_fin no puede ser menor a la fecha_inicio"
+        )
+
     offset = timezone(timedelta(hours=-4))
     ahora = datetime.now(offset)
     ahora_str = ahora.strftime("%d-%m-%Y %H:%M")
@@ -207,6 +225,12 @@ async def generar_reporte_ventas(
     ]
 
     total = sum(item["valor"] for item in items)
+
+    if total == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"no existen datos para el rango de fechas {desde.strftime('%d-%m-%Y')} hasta {hasta.strftime('%d-%m-%Y')}"
+        )
 
     datos_reporte = {
         "empresa": sucursal.nombre if sucursal else "Abuela Empanadas",
