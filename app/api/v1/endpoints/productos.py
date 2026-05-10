@@ -7,7 +7,7 @@ from app.core.dependencies import get_db, get_current_user
 from app.models.usuario import Usuario
 from app.models.producto import Producto
 from app.models.categoria import Categoria
-from app.schemas.producto import ProductoCreate, ProductoRead
+from app.schemas.producto import ProductoCreate, ProductoRead, ProductoUpdate
 
 router = APIRouter()
 
@@ -66,3 +66,23 @@ async def create_producto(
     await db.commit()
     await db.refresh(new_producto, attribute_names=["sucursal", "categoria"])
     return new_producto
+
+
+@router.patch("/{producto_id}", response_model=ProductoRead)
+async def update_producto(
+    producto_id: int,
+    producto_update: ProductoUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    producto = await db.get(Producto, producto_id)
+    if producto is None:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    update_data = producto_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(producto, field, value)
+
+    await db.commit()
+    await db.refresh(producto, attribute_names=["sucursal", "categoria"])
+    return producto
