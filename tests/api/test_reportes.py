@@ -84,9 +84,8 @@ async def test_get_reportes_empty_range(async_client, usuario_admin):
         f"/api/v1/reportes/?desde={before}&hasta={yesterday}",
         headers={"Authorization": f"Bearer {usuario_admin.token}"},
     )
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "application/pdf"
-    assert len(response.content) > 0
+    assert response.status_code == 404
+    assert "no existen datos" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
