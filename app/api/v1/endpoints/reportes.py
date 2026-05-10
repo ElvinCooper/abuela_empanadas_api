@@ -27,6 +27,12 @@ async def generate_reporte(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
+    if hasta < desde:
+        raise HTTPException(
+            status_code=400,
+            detail="la fecha_fin no puede ser menor a la fecha_inicio"
+        )
+
     facturas_result = await db.execute(
         select(func.sum(Factura.total_general)).where(
             and_(
@@ -49,6 +55,12 @@ async def generate_reporte(
     total_gastos = float(gastos_result.scalar() or 0)
     utilidad = total_ventas - total_gastos
 
+    if total_ventas == 0 and total_gastos == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"no existen datos para el rango de fechas {desde.strftime('%d-%m-%Y')} hasta {hasta.strftime('%d-%m-%Y')}"
+        )
+
     offset = timezone(timedelta(hours=-4))
     ahora = datetime.now(offset)
     ahora_str = ahora.strftime("%d-%m-%Y %H:%M")
@@ -66,6 +78,7 @@ async def generate_reporte(
         "rnc": "",
         "desde": desde.strftime("%d-%m-%Y"),
         "hasta": hasta.strftime("%d-%m-%Y"),
+        "fechas_iguales": desde == hasta,
         "fecha_impresion": ahora_str,
         "usuario": current_user.nombre,
         "total_ventas": total_ventas,
@@ -104,7 +117,7 @@ async def generar_recibo(
     if not factura:
         raise HTTPException(status_code=404, detail="Factura no encontrada")
 
-    fecha_str = factura.created_at.strftime("%d-%m-%Y %H:%M") if factura.created_at else ""
+    fecha_str = factura.created_at.strftime("%d-%m-%Y %H:%M") if factura.created_at else ""  # type: ignore[truthy-col]
     items = []
     for d in factura.detalles:
         items.append({
@@ -114,7 +127,7 @@ async def generar_recibo(
             "total": float(d.total_linea),
         })
 
-    base_imponible = float(factura.subtotal - factura.descuento)
+    base_imponible = float(factura.subtotal - factura.descuento)  # type: ignore[arg-type]
 
     datos_recibo = {
         "empresa": factura.sucursal.nombre if factura.sucursal else "",
@@ -127,12 +140,12 @@ async def generar_recibo(
         "fecha": fecha_str,
         "metodo_pago": factura.metodo_pago.nombre if factura.metodo_pago else "",
         "items": items,
-        "subtotal": float(factura.subtotal),
-        "porcentaje_descuento": float(factura.porcentaje_descuento),
-        "descuento": float(factura.descuento),
+        "subtotal": float(factura.subtotal),  # type: ignore[arg-type]
+        "porcentaje_descuento": float(factura.porcentaje_descuento),  # type: ignore[arg-type]
+        "descuento": float(factura.descuento),  # type: ignore[arg-type]
         "base_imponible": base_imponible,
-        "itbis": float(factura.itbis),
-        "total": float(factura.total_general),
+        "itbis": float(factura.itbis),  # type: ignore[arg-type]
+        "total": float(factura.total_general),  # type: ignore[arg-type]
     }
 
     pdf_buffer = generar_recibo_factura(datos_recibo)
@@ -153,6 +166,12 @@ async def generar_reporte_ventas(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
+    if hasta < desde:
+        raise HTTPException(
+            status_code=400,
+            detail="la fecha_fin no puede ser menor a la fecha_inicio"
+        )
+
     offset = timezone(timedelta(hours=-4))
     ahora = datetime.now(offset)
     ahora_str = ahora.strftime("%d-%m-%Y %H:%M")
@@ -207,6 +226,12 @@ async def generar_reporte_ventas(
 
     total = sum(item["valor"] for item in items)
 
+    if total == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"no existen datos para el rango de fechas {desde.strftime('%d-%m-%Y')} hasta {hasta.strftime('%d-%m-%Y')}"
+        )
+
     datos_reporte = {
         "empresa": sucursal.nombre if sucursal else "Abuela Empanadas",
         "direccion": sucursal.direccion if sucursal else "",
@@ -214,6 +239,7 @@ async def generar_reporte_ventas(
         "rnc": "",
         "desde": desde.strftime("%d-%m-%Y"),
         "hasta": hasta.strftime("%d-%m-%Y"),
+        "fechas_iguales": desde == hasta,
         "fecha_impresion": ahora_str,
         "usuario": current_user.nombre,
         "items": items,

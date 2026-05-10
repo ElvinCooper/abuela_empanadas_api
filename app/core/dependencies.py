@@ -1,7 +1,7 @@
 from typing import Callable, AsyncGenerator, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -21,21 +21,42 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
 ) -> Usuario:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    from datetime import datetime, timezone
+
     payload = verify_token(token)
+
     if payload is None:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido o mal formado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    exp = payload.get("exp")
+    if exp:
+        exp_time = datetime.fromtimestamp(exp, tz=timezone.utc)
+        if exp_time < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="El token ha expirado",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
     user_id_str: Optional[str] = payload.get("sub")
     if user_id_str is None:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token sin usuario válido",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
         user_id_int = int(user_id_str)
     except (ValueError, TypeError):
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token con formato de usuario inválido",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     result = await db.execute(
         select(Usuario)
         .where(Usuario.id == user_id_int)
@@ -43,11 +64,15 @@ async def get_current_user(
     )
     user = result.scalars().first()
     if user is None:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario no encontrado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if not bool(user.activo):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is inactive",
+            detail="Usuario inactivo",
         )
     return user
 
