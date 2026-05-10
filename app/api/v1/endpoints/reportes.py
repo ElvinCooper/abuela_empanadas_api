@@ -182,6 +182,11 @@ async def generar_reporte_ventas(
     )
     sucursal = sucursal_result.scalar_one_or_none()
 
+    metodos_pago_result = await db.execute(
+        select(MetodoPago).where(MetodoPago.activo == True)
+    )
+    metodos_pago = {mp.nombre: 0.0 for mp in metodos_pago_result.scalars().all()}
+
     productos_rows = await db.execute(
         select(
             Producto.nombre,
@@ -219,9 +224,12 @@ async def generar_reporte_ventas(
         )
         .group_by(MetodoPago.nombre)
     )
+    for row in pagos_rows:
+        metodos_pago[row[0]] = float(row[1] or 0)
+
     pagos = [
-        {"tipo": row[0], "valor": float(row[1] or 0)}
-        for row in pagos_rows
+        {"tipo": tipo, "valor": valor}
+        for tipo, valor in metodos_pago.items()
     ]
 
     total = sum(item["valor"] for item in items)
