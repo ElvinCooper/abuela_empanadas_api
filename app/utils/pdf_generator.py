@@ -172,9 +172,10 @@ def generar_reporte_ventas_termico(datos: dict) -> BytesIO:
         texto_centrado(f"RNC: {datos['rnc']}", 8)
         espacio(10)
 
-    texto_centrado(f"Desde {datos.get('desde', '')} Hasta {datos.get('hasta', '')}", 8)
-    espacio(8)
-    texto_centrado(datos.get("fecha_impresion", ""), 8)
+    if datos.get("fechas_iguales"):
+        texto_centrado(f"Fecha: {datos.get('desde', '')}", 8)
+    else:
+        texto_centrado(f"Desde: {datos.get('desde', '')}  Hasta: {datos.get('hasta', '')}", 8)
     espacio(8)
     texto_centrado(f"Impreso por: {datos.get('usuario', '')}", 8)
 
@@ -264,9 +265,10 @@ def generar_reporte_estado_termico(datos: dict) -> BytesIO:
     if datos.get("rnc"):
         texto_centrado(f"RNC: {datos['rnc']}", 8)
         espacio(8)
-    texto_centrado(f"Desde {datos.get('desde', '')} Hasta {datos.get('hasta', '')}", 8)
-    espacio(8)
-    texto_centrado(datos.get("fecha_impresion", ""), 8)
+    if datos.get("fechas_iguales"):
+        texto_centrado(f"Fecha: {datos.get('desde', '')}", 8)
+    else:
+        texto_centrado(f"Desde: {datos.get('desde', '')}  Hasta: {datos.get('hasta', '')}", 8)
     espacio(8)
     texto_centrado(f"Impreso por: {datos.get('usuario', '')}", 8)
     linea()
