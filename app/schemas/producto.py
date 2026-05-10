@@ -14,11 +14,9 @@ class ProductoCreate(BaseSchema):
 
 class ProductoUpdate(BaseSchema):
     nombre: Optional[str] = None
-    descripcion: Optional[str] = None
     precio: Optional[int] = None
     stock: Optional[int] = None
     activo: Optional[bool] = None
-    icon_img: Optional[str] = None
 
 
 class ProductoRead(BaseSchema):
