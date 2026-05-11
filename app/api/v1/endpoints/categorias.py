@@ -48,9 +48,9 @@ async def update_categoria(
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
 
     if categoria.nombre is not None:
-        db_categoria.nombre = categoria.nombre
+        db_categoria.nombre = categoria.nombre  # type: ignore[assignment]
     if categoria.descripcion is not None:
-        db_categoria.descripcion = categoria.descripcion
+        db_categoria.descripcion = categoria.descripcion  # type: ignore[assignment]
 
     await db.commit()
     await db.refresh(db_categoria)
