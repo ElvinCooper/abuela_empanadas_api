@@ -1,5 +1,6 @@
+from datetime import date as date_type
 from typing import Optional
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, computed_field, field_validator
 from app.schemas.common import BaseSchema
 
 
@@ -9,6 +10,17 @@ class FacturaFiscalInput(BaseModel):
     rnc_cliente: Optional[str] = None
     nombre_cliente_fiscal: Optional[str] = None
     fecha_vencimiento_ncf: Optional[str] = None
+
+    @field_validator("fecha_vencimiento_ncf")
+    @classmethod
+    def validar_fecha_formato(cls, v):
+        if v is None:
+            return v
+        try:
+            date_type.fromisoformat(v)
+        except ValueError:
+            raise ValueError("fecha_vencimiento_ncf debe estar en formato YYYY-MM-DD")
+        return v
 
 
 class FacturaDetalleItemCreate(BaseModel):
