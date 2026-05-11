@@ -26,6 +26,23 @@ async def list_productos(
     return productos
 
 
+@router.get("/{producto_id}", response_model=ProductoRead)
+async def get_producto(
+    producto_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Producto)
+        .where(Producto.id == producto_id)
+        .options(selectinload(Producto.sucursal), selectinload(Producto.categoria))
+    )
+    producto = result.scalar_one_or_none()
+    if producto is None:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return producto
+
+
 @router.get("/categoria/{categoria_id}", response_model=list[ProductoRead])
 async def list_productos_by_categoria(
     categoria_id: int,
