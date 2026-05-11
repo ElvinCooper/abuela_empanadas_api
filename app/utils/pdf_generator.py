@@ -191,14 +191,14 @@ def generar_reporte_ventas_termico(datos: dict) -> BytesIO:
     espacio(6)
     linea()
     espacio(6)
-    texto_izq_der("DESCRIPCION", "Valor", 9, True)
+    texto_izq_der("PRODUCTO", "Valor", 9, True)
     espacio(6)
     linea()
 
     for item in datos.get("items", []):
         check_page_overflow(30)
         espacio(10)
-        texto_izq_der(item.get("descripcion", ""), f"{item.get('valor', 0):,.2f}")
+        texto_izq_der(f"{item.get('producto', '')} (x{item.get('cantidad', 0)})", f"{item.get('valor', 0):,.2f}")
 
     espacio(10)
     linea()
