@@ -5,8 +5,6 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_get_reportes_pdf(async_client, usuario_admin):
-    today = date.today()
-
     response = await async_client.post(
         "/api/v1/facturas/",
         json={
@@ -35,7 +33,7 @@ async def test_get_reportes_pdf(async_client, usuario_admin):
     assert response.status_code == 201
 
     response = await async_client.get(
-        f"/api/v1/reportes/?desde={today}&hasta={today}",
+        "/api/v1/reportes/?desde=2020-01-01&hasta=2030-12-31",
         headers={"Authorization": f"Bearer {usuario_admin.token}"},
     )
     assert response.status_code == 200
@@ -51,7 +49,7 @@ async def test_get_reportes_pdf(async_client, usuario_admin):
     assert len(response.content) > 0
 
     response = await async_client.get(
-        f"/api/v1/reportes/ventas-termico?desde={today}&hasta={today}",
+        "/api/v1/reportes/ventas-termico?desde=2020-01-01&hasta=2030-12-31",
         headers={"Authorization": f"Bearer {usuario_admin.token}"},
     )
     assert response.status_code == 200
