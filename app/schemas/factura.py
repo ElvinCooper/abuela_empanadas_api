@@ -14,8 +14,8 @@ class FacturaFiscalInput(BaseModel):
     @field_validator("fecha_vencimiento_ncf")
     @classmethod
     def validar_fecha_formato(cls, v):
-        if v is None:
-            return v
+        if v is None or v == "":
+            return None
         try:
             date_type.fromisoformat(v)
         except ValueError:
