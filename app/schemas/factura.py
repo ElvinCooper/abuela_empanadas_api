@@ -11,6 +11,27 @@ class FacturaFiscalInput(BaseModel):
     nombre_cliente_fiscal: Optional[str] = None
     fecha_vencimiento_ncf: Optional[str] = None
 
+    @field_validator("ncf")
+    @classmethod
+    def validar_ncf(cls, v):
+        if v is not None and len(v) > 19:
+            raise ValueError("ncf debe tener maximo 19 caracteres")
+        return v
+
+    @field_validator("tipo_ncf")
+    @classmethod
+    def validar_tipo_ncf(cls, v):
+        if v is not None and len(v) > 5:
+            raise ValueError("tipo_ncf debe tener maximo 5 caracteres")
+        return v
+
+    @field_validator("rnc_cliente")
+    @classmethod
+    def validar_rnc_cliente(cls, v):
+        if v is not None and len(v) > 9:
+            raise ValueError("rnc_cliente debe tener maximo 9 caracteres")
+        return v
+
     @field_validator("fecha_vencimiento_ncf")
     @classmethod
     def validar_fecha_formato(cls, v):
