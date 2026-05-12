@@ -190,6 +190,7 @@ async def generar_reporte_ventas(
     productos_rows = await db.execute(
         select(
             Producto.nombre,
+            func.sum(FacturaDetalle.cantidad),
             func.sum(FacturaDetalle.total_linea),
         )
         .join(FacturaDetalle, FacturaDetalle.producto_id == Producto.id)
@@ -205,7 +206,7 @@ async def generar_reporte_ventas(
         .order_by(func.sum(FacturaDetalle.total_linea).desc())
     )
     items = [
-        {"descripcion": row[0], "valor": float(row[1] or 0)}
+        {"producto": row[0], "cantidad": int(row[1] or 0), "valor": float(row[2] or 0)}
         for row in productos_rows
     ]
 
