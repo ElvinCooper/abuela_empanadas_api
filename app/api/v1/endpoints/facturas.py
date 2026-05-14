@@ -1,4 +1,4 @@
-from datetime import date as date_type, datetime, time
+from datetime import date as date_type, datetime, time, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
@@ -176,6 +176,10 @@ async def create_factura(
             "fecha_vencimiento_ncf": fecha_venc,
         }
 
+    offset = timezone(timedelta(hours=-4))
+    ahora = datetime.now(offset)
+    fecha_hora_rd = ahora.replace(tzinfo=None)
+
     new_factura = Factura(
         sucursal_id=current_user.sucursal_id,
         usuario_id=factura.id_cliente,
@@ -187,6 +191,7 @@ async def create_factura(
         descuento=descuento_total,
         itbis=itbis_total,
         total_general=total_general,
+        created_at=fecha_hora_rd,
         **fiscal_data,
     )
     db.add(new_factura)

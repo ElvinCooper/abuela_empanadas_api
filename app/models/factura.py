@@ -39,7 +39,7 @@ class Factura(Base):
     descuento = Column(Float, nullable=False, server_default=text("0"), default=0)
     itbis = Column(Float, nullable=False, server_default=text("0"), default=0)
     total_general = Column(Float, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
     ncf = Column(String(19), nullable=True)
     tipo_ncf = Column(String(5), nullable=True)
     rnc_emisor = Column(String(9), nullable=True)
