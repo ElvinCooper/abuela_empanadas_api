@@ -1,6 +1,6 @@
 from datetime import date as date_type
-from typing import Optional
-from pydantic import BaseModel, computed_field, field_validator
+from typing import Optional, Any
+from pydantic import BaseModel, field_validator, model_validator
 from app.schemas.common import BaseSchema
 
 
@@ -96,6 +96,69 @@ class FacturaDataResponse(BaseModel):
     encabezado: EncabezadoRead
     fiscal: FacturaFiscalBlock
     detalle: list[FacturaDetalleItemRead]
+
+    @model_validator(mode="before")
+    @classmethod
+    def from_orm_factura(cls, data: Any) -> Any:
+        if hasattr(data, "__dict__"):
+            detalle_items = []
+            for d in data.detalles:
+                subtotal_linea = d.cantidad * d.precio_unitario
+                detalle_items.append(
+                    FacturaDetalleItemRead(
+                        id_producto=d.producto_id,
+                        descripcion=d.producto.nombre if d.producto else "",
+                        cantidad=d.cantidad,
+                        precio_unitario=float(d.precio_unitario),
+                        subtotal_linea=float(subtotal_linea),
+                        descuento_linea=float(d.descuento),
+                        base_imponible=float(d.base_imponible),
+                        porcentaje_itbis=float(d.itbis),
+                        itbis=float(d.itbis_aplicado),
+                        total_linea=float(d.total_linea),
+                    )
+                )
+
+            fecha_str = data.created_at.strftime("%Y-%m-%d %H:%M:%S") if data.created_at is not None else ""
+            base_imponible = float(data.subtotal - data.descuento)
+
+            encabezado = EncabezadoRead(
+                id_factura=int(data.id),
+                fecha=fecha_str,
+                id_cliente=int(data.usuario_id),
+                moneda=data.moneda.nombre if data.moneda else "",
+                metodo_pago=data.metodo_pago.nombre if data.metodo_pago else "",
+                estado=data.status.nombre if data.status else "",
+                subtotal=float(data.subtotal),
+                porcentaje_descuento=float(data.porcentaje_descuento),
+                descuento=float(data.descuento),
+                base_imponible=base_imponible,
+                total_itbis=float(data.itbis),
+                total=float(data.total_general),
+            )
+
+            fiscal = FacturaFiscalBlock(
+                requiere_ncf=data.ncf is not None,
+                ncf=data.ncf,
+                tipo_ncf=data.tipo_ncf,
+                rnc_emisor=data.rnc_emisor,
+                razon_social_emisor=data.razon_social_emisor,
+                rnc_cliente=data.rnc_cliente,
+                nombre_cliente_fiscal=data.nombre_cliente_fiscal,
+                fecha_vencimiento_ncf=(
+                    data.fecha_vencimiento_ncf.strftime("%Y-%m-%d")
+                    if data.fecha_vencimiento_ncf is not None
+                    else None
+                ),
+                estado_fiscal=data.estado_fiscal,
+            )
+
+            return cls.model_validate({
+                "encabezado": encabezado.model_dump(),
+                "fiscal": fiscal.model_dump(),
+                "detalle": detalle_items,
+            })
+        return data
 
 
 class FacturaCreate(BaseModel):

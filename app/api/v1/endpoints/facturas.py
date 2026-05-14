@@ -9,72 +9,10 @@ from app.models.factura import Factura, FacturaDetalle
 from app.models.producto import Producto
 from app.models.status_factura import StatusFactura
 from app.models.anulacion import Anulacion
-from app.schemas.factura import (
-    FacturaCreate,
-    FacturaDataResponse,
-    EncabezadoRead,
-    FacturaDetalleItemRead,
-    FacturaFiscalBlock,
-)
+from app.schemas.factura import FacturaCreate, FacturaDataResponse
 from app.schemas.anulacion import AnulacionCreate, AnulacionRead
 
 router = APIRouter()
-
-
-def _build_factura_response(factura: Factura) -> FacturaDataResponse:
-    detalle_items = []
-    for d in factura.detalles:
-        subtotal_linea = d.cantidad * d.precio_unitario
-        detalle_items.append(
-            FacturaDetalleItemRead(
-                id_producto=d.producto_id,
-                descripcion=d.producto.nombre if d.producto else "",
-                cantidad=d.cantidad,
-                precio_unitario=float(d.precio_unitario),
-                subtotal_linea=float(subtotal_linea),
-                descuento_linea=float(d.descuento),
-                base_imponible=float(d.base_imponible),
-                porcentaje_itbis=float(d.itbis),
-                itbis=float(d.itbis_aplicado),
-                total_linea=float(d.total_linea),
-            )
-        )
-
-    fecha_str = factura.created_at.strftime("%Y-%m-%d %H:%M:%S") if factura.created_at is not None else ""
-    base_imponible = float(factura.subtotal - factura.descuento)  # type: ignore[arg-type]
-
-    encabezado = EncabezadoRead(
-        id_factura=int(factura.id),  # type: ignore[arg-type]
-        fecha=fecha_str,
-        id_cliente=int(factura.usuario_id),  # type: ignore[arg-type]
-        moneda=factura.moneda.nombre if factura.moneda else "",
-        metodo_pago=factura.metodo_pago.nombre if factura.metodo_pago else "",
-        estado=factura.status.nombre if factura.status else "",
-        subtotal=float(factura.subtotal),  # type: ignore[arg-type]
-        porcentaje_descuento=float(factura.porcentaje_descuento),  # type: ignore[arg-type]
-        descuento=float(factura.descuento),  # type: ignore[arg-type]
-        base_imponible=base_imponible,
-        total_itbis=float(factura.itbis),  # type: ignore[arg-type]
-        total=float(factura.total_general),  # type: ignore[arg-type]
-    )
-
-    fiscal = FacturaFiscalBlock(
-        requiere_ncf=factura.ncf is not None,
-        ncf=factura.ncf,  # type: ignore[arg-type]
-        tipo_ncf=factura.tipo_ncf,  # type: ignore[arg-type]
-        rnc_emisor=factura.rnc_emisor,  # type: ignore[arg-type]
-        razon_social_emisor=factura.razon_social_emisor,  # type: ignore[arg-type]
-        rnc_cliente=factura.rnc_cliente,  # type: ignore[arg-type]
-        nombre_cliente_fiscal=factura.nombre_cliente_fiscal,  # type: ignore[arg-type]
-        fecha_vencimiento_ncf=(
-            factura.fecha_vencimiento_ncf.strftime("%Y-%m-%d")
-            if factura.fecha_vencimiento_ncf is not None
-            else None
-        ),
-        estado_fiscal=factura.estado_fiscal,  # type: ignore[arg-type]
-    )
-
-    return FacturaDataResponse(encabezado=encabezado, fiscal=fiscal, detalle=detalle_items)
 
 
 @router.get("/", response_model=list[FacturaDataResponse])
@@ -111,7 +49,7 @@ async def list_facturas(
             status_code=404,
             detail=f"No hay facturas para el rango de fechas indicado: {fecha_inicio} - {fecha_fin}",
         )
-    return [_build_factura_response(f) for f in facturas]
+    return facturas
 
 
 @router.post("/", response_model=FacturaDataResponse, status_code=201)
@@ -215,7 +153,7 @@ async def create_factura(
     for detalle in new_factura.detalles:
         await db.refresh(detalle, attribute_names=["producto"])
 
-    return _build_factura_response(new_factura)
+    return new_factura
 
 
 @router.get("/anuladas", response_model=list[AnulacionRead])
