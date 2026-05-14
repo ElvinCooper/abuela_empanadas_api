@@ -91,8 +91,8 @@ def generar_recibo_factura(datos: dict) -> BytesIO:
         desc = item.get("descripcion", "")
         cant = item.get("cantidad", 0)
         total_item = item.get("total", 0)
-        c.drawString(5, y, f"{desc} (x{cant})")
-        espacio(8)
+        linea_texto = f"{desc} (x{cant})"
+        c.drawString(5, y, linea_texto)
         c.drawRightString(width - 5, y, f"{total_item:,.2f}")
 
     espacio(6)
