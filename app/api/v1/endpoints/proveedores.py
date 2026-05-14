@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.dependencies import get_db, get_current_user
 from app.models.usuario import Usuario
 from app.models.proveedor import Proveedor
-from app.schemas.proveedor import ProveedorCreate, ProveedorRead
+from app.schemas.proveedor import ProveedorCreate, ProveedorRead, ProveedorUpdate
 
 router = APIRouter()
 
@@ -34,3 +34,23 @@ async def create_proveedor(
     await db.commit()
     await db.refresh(new_proveedor)
     return new_proveedor
+
+
+@router.patch("/{proveedor_id}", response_model=ProveedorRead)
+async def update_proveedor(
+    proveedor_id: int,
+    proveedor_update: ProveedorUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    proveedor = await db.get(Proveedor, proveedor_id)
+    if proveedor is None:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+
+    update_data = proveedor_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(proveedor, field, value)
+
+    await db.commit()
+    await db.refresh(proveedor)
+    return proveedor
