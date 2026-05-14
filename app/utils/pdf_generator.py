@@ -1,6 +1,8 @@
 from io import BytesIO
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+import qrcode
 
 
 def generar_recibo_factura(datos: dict) -> BytesIO:
@@ -114,6 +116,20 @@ def generar_recibo_factura(datos: dict) -> BytesIO:
     texto_centrado("Gracias por su compra!", 8)
     espacio(8)
     texto_centrado("Abuela Empanadas", 8)
+    espacio(10)
+
+    qr = qrcode.QRCode(box_size=3, border=0)
+    qr.add_data("https://www.instagram.com/abuelaempanadas/")
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+
+    qr_buffer = BytesIO()
+    qr_img.save(qr_buffer, format="PNG")
+    qr_buffer.seek(0)
+
+    qr_width = 20 * mm
+    qr_x = (width - qr_width) / 2
+    c.drawImage(ImageReader(qr_buffer), qr_x, y - qr_width, width=qr_width, height=qr_width)
 
     c.save()
     buffer.seek(0)
