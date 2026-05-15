@@ -14,6 +14,8 @@ from app.schemas.anulacion import AnulacionCreate, AnulacionRead
 
 router = APIRouter()
 
+ITBIS_TASA = 0.18
+
 
 @router.get("/", response_model=list[FacturaDataResponse])
 async def list_facturas(
@@ -79,7 +81,7 @@ async def create_factura(
         else:
             descuento_linea = precio_linea * (factura.porcentaje_descuento / 100)
         base_imponible = precio_linea - descuento_linea
-        itbis_aplicado = base_imponible * (item.itbis / 100)
+        itbis_aplicado = base_imponible * ITBIS_TASA
         total_linea = base_imponible + itbis_aplicado
 
         detalle_items_data.append(
@@ -89,7 +91,7 @@ async def create_factura(
                 "precio_unitario": precio,
                 "descuento": descuento_linea,
                 "base_imponible": base_imponible,
-                "itbis": item.itbis,
+                "itbis": ITBIS_TASA * 100,
                 "itbis_aplicado": itbis_aplicado,
                 "total_linea": total_linea,
             }

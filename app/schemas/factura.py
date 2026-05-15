@@ -1,7 +1,11 @@
 from datetime import date as date_type
 from typing import Optional, Any
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_validator, model_validator, Field
 from app.schemas.common import BaseSchema
+
+
+
+float_global = Field(max_digits=10, decimal_places=2)
 
 
 class FacturaFiscalInput(BaseModel):

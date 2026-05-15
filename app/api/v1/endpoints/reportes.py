@@ -131,6 +131,7 @@ async def generar_recibo(
             "descripcion": d.producto.nombre if d.producto else "",
             "cantidad": d.cantidad,
             "precio_unitario": float(d.precio_unitario),
+            "itbis": float(d.itbis_aplicado),
             "total": float(d.total_linea),
         })
 
