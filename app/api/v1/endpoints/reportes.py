@@ -117,6 +117,13 @@ async def generar_recibo(
     if not factura:
         raise HTTPException(status_code=404, detail="Factura no encontrada")
 
+    # IDOR protection: verificar que la factura pertenece a la sucursal del usuario
+    if int(factura.sucursal_id) != int(current_user.sucursal_id):
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permiso para ver este recibo"
+        )
+
     fecha_str = factura.created_at.strftime("%d-%m-%Y %H:%M") if factura.created_at else ""  # type: ignore[truthy-col]
     items = []
     for d in factura.detalles:
