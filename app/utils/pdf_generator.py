@@ -86,7 +86,10 @@ def generar_recibo_factura(datos: dict) -> BytesIO:
     espacio(6)
     linea()
 
-    for item in datos.get("items", []):
+    items = datos.get("items", [])
+    total_itbis_items = sum(item.get("itbis", 0) for item in items)
+
+    for item in items:
         check_page_overflow(30)
         espacio(10)
         c.setFont("Courier", 8)
@@ -109,15 +112,17 @@ def generar_recibo_factura(datos: dict) -> BytesIO:
             c.drawString(5, y, f"{resto:<{max_desc}} {cant}        {itbis_item:,.2f}")
 
     espacio(6)
+    c.setFont("Courier-Bold", 8)
+    # c.drawRightString(width - 85, y, "TOTALES:")
+    
     linea()
     espacio(8)
     texto_izq_der("Subtotal:", f"{datos.get('subtotal', 0):,.2f}", 9)
     espacio(8)
+    # c.drawRightString(width - 5, y, f"{total_itbis_items:,.2f}")
     if datos.get("descuento", 0) > 0:
         texto_izq_der(f"Descuento ({datos.get('porcentaje_descuento', 0):.0f}%):", f"-{datos['descuento']:,.2f}", 9)
         espacio(8)
-    texto_izq_der("Base Imponible:", f"{datos.get('base_imponible', 0):,.2f}", 9)
-    espacio(8)
     texto_izq_der("ITBIS:", f"{datos.get('itbis', 0):,.2f}", 9)
     espacio(6)
     linea()
@@ -141,6 +146,7 @@ def generar_recibo_factura(datos: dict) -> BytesIO:
     qr_width = 20 * mm
     qr_x = (width - qr_width) / 2
     c.drawImage(ImageReader(qr_buffer), qr_x, y - qr_width, width=qr_width, height=qr_width)
+    espacio(2)
 
     c.save()
     buffer.seek(0)
