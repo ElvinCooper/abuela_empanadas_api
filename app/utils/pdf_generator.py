@@ -81,9 +81,9 @@ def generar_recibo_factura(datos: dict) -> BytesIO:
 
     espacio(14)
     texto_centrado("DETALLE", 9, True)
+    espacio(12)
+    texto_izq_der("Descripcion    CANT     ITBIS", "Total", 8, True, 30)
     espacio(6)
-    texto_izq_der("Descripcion", "Total", 8, True, 30)
-    espacio(4)
     linea()
 
     for item in datos.get("items", []):
@@ -92,10 +92,21 @@ def generar_recibo_factura(datos: dict) -> BytesIO:
         c.setFont("Courier", 8)
         desc = item.get("descripcion", "")
         cant = item.get("cantidad", 0)
+        itbis_item = item.get("itbis", 0)
         total_item = item.get("total", 0)
-        linea_texto = f"{desc} (x{cant})"
-        c.drawString(5, y, linea_texto)
-        c.drawRightString(width - 5, y, f"{total_item:,.2f}")
+
+        max_desc = 15
+        if len(desc) <= max_desc:
+            linea_texto = f"{desc:<{max_desc}} {cant}        {itbis_item:,.2f}"
+            c.drawString(5, y, linea_texto)
+            c.drawRightString(width - 5, y, f"{total_item:,.2f}")
+        else:
+            primera_parte = desc[:max_desc]
+            resto = desc[max_desc:]
+            c.drawString(5, y, primera_parte)
+            c.drawRightString(width - 5, y, f"{total_item:,.2f}")
+            espacio(10)
+            c.drawString(5, y, f"{resto:<{max_desc}} {cant}        {itbis_item:,.2f}")
 
     espacio(6)
     linea()

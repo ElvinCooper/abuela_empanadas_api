@@ -1,3 +1,5 @@
+import os
+from typing import ClassVar
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,7 +10,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = (
         "postgresql+asyncpg://user:password@localhost:5432/abuela_empanadas"
     )
-    SECRET_KEY: str = "changeme"
+    SECRET_KEY: ClassVar[str] = os.getenv("SECRET_KEY", "changeme")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     PROJECT_NAME: str = "Abuela Empanadas API"
