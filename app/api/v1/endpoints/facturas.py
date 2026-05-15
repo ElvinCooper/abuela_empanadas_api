@@ -121,7 +121,7 @@ async def create_factura(
     new_factura = Factura(
         sucursal_id=current_user.sucursal_id,
         usuario_id=factura.id_cliente,
-        id_status=1,
+        id_status=2,
         id_moneda=factura.id_moneda,
         id_metodo_pago=factura.id_metodo_pago,
         subtotal=subtotal,
