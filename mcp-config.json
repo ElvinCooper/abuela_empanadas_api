@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "semgrep": {
+      "command": "npx",
+      "args": ["-y", "@semgrep/mcp"]
+    }
+  }
+}
+
+/*
+=== CONFIGURACIÓN DEL MCP PARA SEMGREP ===
+
+OPCIONES DE INSTALACIÓN:
+
+1. CLAUDE DESKTOP (Windows):
+   Crea el archivo en: %APPDATA%/Claude/mcp.json
+   Copia el contenido de arriba.
+
+2. OPENCODE:
+   Crea el archivo en: ~/.config/opencode/mcp.json
+   Copia el contenido de arriba.
+
+3. VS CODE / cursor:
+   Agrega en .cursor/mcp.json o settings de VS Code
+
+4. EJECUCIÓN DIRECTA (sin MCP):
+   npm install -g semgrep
+   semgrep scan --config=auto ./app/
+
+NOTA: Para usar Semgrep en modo nube (con reglas pro),
+      necesitas un token en SEMGREP_APP_TOKEN
+
+      Obtén tu token gratis en: https://semgrep.dev/
+
+*/
