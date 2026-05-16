@@ -1,5 +1,5 @@
 from datetime import date as date_type, datetime, time, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import selectinload
@@ -7,6 +7,7 @@ from app.core.dependencies import get_db, get_current_user
 from app.models.usuario import Usuario
 from app.models.factura import Factura, FacturaDetalle
 from app.models.producto import Producto
+from app.models.categoria import Categoria
 from app.models.status_factura import StatusFactura
 from app.models.anulacion import Anulacion
 from app.schemas.factura import FacturaCreate, FacturaDataResponse
@@ -15,6 +16,7 @@ from app.schemas.anulacion import AnulacionCreate, AnulacionRead
 router = APIRouter()
 
 ITBIS_TASA = 0.18
+CATEGORIA_EMPANADAS = "Empanadas"
 
 
 @router.get("/", response_model=list[FacturaDataResponse])
@@ -65,7 +67,9 @@ async def create_factura(
 
     for item in factura.detalle:
         producto_result = await db.execute(
-            select(Producto).where(Producto.id == item.id_producto)
+            select(Producto)
+            .options(selectinload(Producto.categoria))
+            .where(Producto.id == item.id_producto)
         )
         producto = producto_result.scalar_one_or_none()
         if producto is None:
@@ -73,6 +77,18 @@ async def create_factura(
                 status_code=404,
                 detail=f"Producto con id {item.id_producto} no encontrado",
             )
+
+        categoria_nombre = producto.categoria.nombre if producto.categoria else ""
+        es_empanada = categoria_nombre == CATEGORIA_EMPANADAS
+
+        if es_empanada:
+            stock_actual = producto.stock or 0
+            if stock_actual < item.cantidad:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El producto '{producto.nombre}' solo tiene {stock_actual} unidades disponibles"
+                )
+            producto.stock = stock_actual - item.cantidad
 
         precio = item.precio_unitario if item.precio_unitario is not None else float(producto.precio)  # type: ignore[arg-type]
         precio_linea = precio * item.cantidad
@@ -170,7 +186,7 @@ async def listar_facturas_anuladas(
 @router.post("/{factura_id}/anular", response_model=AnulacionRead, status_code=201)
 async def anular_factura(
     factura_id: int,
-    anulacion: AnulacionCreate,
+    anulacion: AnulacionCreate = Body(...),
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
@@ -179,11 +195,24 @@ async def anular_factura(
     )
     status_anulada = anulada_result.scalar_one()
 
+    factura_result = await db.execute(
+        select(Factura)
+        .options(selectinload(Factura.detalles).selectinload(FacturaDetalle.producto).selectinload(Producto.categoria))
+        .where(Factura.id == factura_id)
+    )
+    factura = factura_result.scalar_one_or_none()
+
+    if factura is not None:
+        for detalle in factura.detalles:
+            if detalle.producto and detalle.producto.categoria:
+                if detalle.producto.categoria.nombre == CATEGORIA_EMPANADAS:
+                    stock_actual = detalle.producto.stock or 0
+                    detalle.producto.stock = stock_actual + detalle.cantidad
+
+        factura.id_status = status_anulada.id
+
     new_anulacion = Anulacion(factura_id=factura_id, motivo=anulacion.motivo)
     db.add(new_anulacion)
-    factura = await db.get(Factura, factura_id)
-    if factura is not None:
-        factura.id_status = status_anulada.id
     await db.commit()
     await db.refresh(new_anulacion)
     return new_anulacion
