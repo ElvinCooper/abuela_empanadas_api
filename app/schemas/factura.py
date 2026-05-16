@@ -60,13 +60,13 @@ class FacturaDetalleItemRead(BaseModel):
     id_producto: int
     descripcion: str
     cantidad: int
-    precio_unitario: float
-    subtotal_linea: float
-    descuento_linea: float
-    base_imponible: float
-    porcentaje_itbis: float
-    itbis: float
-    total_linea: float
+    precio_unitario:  float = float_global
+    subtotal_linea:   float = float_global
+    descuento_linea:  float = float_global
+    base_imponible:   float = float_global
+    porcentaje_itbis: float = float_global
+    itbis:            float = float_global
+    total_linea:      float = float_global
 
 
 class EncabezadoRead(BaseModel):

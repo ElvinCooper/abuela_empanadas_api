@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.core.dependencies import get_db, get_current_user
-from app.models.usuario import Usuario
+from app.models.usuario import Usuario, RolEnum
 from app.models.producto import Producto
 from app.models.categoria import Categoria
 from app.schemas.producto import ProductoCreate, ProductoRead, ProductoUpdate
@@ -17,8 +17,13 @@ async def list_productos(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
+    query = select(Producto).where(Producto.activo == True)
+
+    if current_user.rol != RolEnum.admin:
+        query = query.where(Producto.sucursal_id == current_user.sucursal_id)
+
     result = await db.execute(
-        select(Producto).options(
+        query.options(
             selectinload(Producto.sucursal), selectinload(Producto.categoria)
         )
     )
