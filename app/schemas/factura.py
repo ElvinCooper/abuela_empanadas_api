@@ -70,10 +70,16 @@ class FacturaDetalleItemRead(BaseModel):
     total_linea:      Decimal = decimal_field
 
 
+class SucursalInfo(BaseModel):
+    id: int
+    nombre: str
+
+
 class EncabezadoRead(BaseModel):
     id_factura: int
     fecha: str
     id_cliente: int
+    sucursal: SucursalInfo
     moneda: str
     metodo_pago: str
     estado: str
@@ -131,6 +137,10 @@ class FacturaDataResponse(BaseModel):
                 id_factura=int(data.id),
                 fecha=fecha_str,
                 id_cliente=int(data.usuario_id),
+                sucursal=SucursalInfo(
+                    id=int(data.sucursal_id),
+                    nombre=data.sucursal.nombre if data.sucursal else ""
+                ),
                 moneda=data.moneda.nombre if data.moneda else "",
                 metodo_pago=data.metodo_pago.nombre if data.metodo_pago else "",
                 estado=data.status.nombre if data.status else "",
