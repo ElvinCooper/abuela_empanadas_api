@@ -89,8 +89,7 @@ jobs:
     - name: Run Semgrep Security Scan
       uses: returntocorp/semgrep-action@v1
       with:
-        config: "r/owasp-top-10 r/frameworks"
-        flags: "--verbose --json --output=semgrep.json"
+        config: "auto"
       env:
         SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
