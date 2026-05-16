@@ -42,29 +42,23 @@ def build_test_database_url(database_url: str, derive_database_name: bool) -> st
     )
 
 
-pg_user = os.getenv("TEST_POSTGRES_USER")
-pg_pass = os.getenv("TEST_POSTGRES_PASSWORD")
-pg_db = os.getenv("TEST_POSTGRES_DB")
+# Configuración de base de datos de tests (Docker PostgreSQL)
+# Valores por defecto para el contenedor Docker que está corriendo en puerto 5433
+pg_user = os.getenv("TEST_POSTGRES_USER", "test_abuela_user")
+pg_pass = os.getenv("TEST_POSTGRES_PASSWORD", "test_abuela_password")
+pg_db = os.getenv("TEST_POSTGRES_DB", "abuela_empanadas_test")
 pg_host = os.getenv("TEST_POSTGRES_HOST", "127.0.0.1")
 pg_port = os.getenv("TEST_POSTGRES_PORT", "5433")
-if pg_user and pg_pass and pg_db:
-    configured_test_database_url = (
-        f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
-    )
-else:
-    configured_test_database_url = (
-        os.getenv("TEST_DATABASE_URL") or settings.TEST_DATABASE_URL
-    )
-if configured_test_database_url:
-    TEST_DATABASE_URL = build_test_database_url(
-        configured_test_database_url,
-        derive_database_name=False,
-    )
-else:
-    TEST_DATABASE_URL = build_test_database_url(
-        settings.DATABASE_URL,
-        derive_database_name=True,
-    )
+
+# Siempre usamos los valores del contenedor Docker local
+configured_test_database_url = (
+    f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
+)
+
+TEST_DATABASE_URL = build_test_database_url(
+    configured_test_database_url,
+    derive_database_name=False,
+)
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -75,6 +69,7 @@ async def test_engine():
         connect_args={
             "prepared_statement_cache_size": 0,
             "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
+            "ssl": False,
         },
     )
     yield engine
