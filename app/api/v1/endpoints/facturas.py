@@ -88,7 +88,7 @@ async def create_factura(
                     status_code=400,
                     detail=f"El producto '{producto.nombre}' solo tiene {stock_actual} unidades disponibles"
                 )
-            producto.stock = stock_actual - item.cantidad
+            producto.stock = int(stock_actual - item.cantidad)  # type: ignore[assignment]
 
         precio = item.precio_unitario if item.precio_unitario is not None else float(producto.precio)  # type: ignore[arg-type]
         precio_linea = precio * item.cantidad
