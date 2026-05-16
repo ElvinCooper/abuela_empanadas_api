@@ -9,16 +9,20 @@ Sistema de gestion para "Abuela Empanadas" construido con FastAPI, SQLAlchemy as
 - Estructura base de FastAPI organizada por capas: endpoints, modelos, esquemas, servicios, base de datos y configuracion.
 - Configuracion de Alembic para migraciones de base de datos.
 - Migracion inicial disponible en `alembic/versions/`.
-- Modelos SQLAlchemy definidos: `Usuario`, `Sucursal`, `Producto`, `Factura`, `FacturaDetalle`, `Anulacion`, `CierreDiario`, `Egreso`, `Proveedor`, `Insumo` y `Stock`.
+- Modelos SQLAlchemy definidos: `Usuario`, `Sucursal`, `Producto`, `Factura`, `FacturaDetalle`, `Anulacion`, `CierreDiario`, `Egreso`, `Proveedor`, `Insumo`, `Stock`, `Categoria`, `Moneda`, `MetodoPago`, `StatusFactura`.
 - Esquemas Pydantic para validacion y serializacion de datos.
 - Autenticacion con JWT y bcrypt.
 - Endpoints API bajo el prefijo `/api/v1`.
 - Pruebas automatizadas en `tests/`.
 - Workflow de GitHub Actions para linting, tests con coverage, escaneo de seguridad, build y despliegues.
+- Control de inventario para productos de categoria "Empanadas" (restar stock en venta, reintegrar en anulacion).
+- Generacion de PDF receipts con codigo QR.
+- Calculo de ITBIS (18%) en facturas.
+- Reportes: ventas termico, estado financiero, y recibo PDF.
+- Seguridad: rate limiting (5 req/min), CORS especifico, security headers, proteccion IDOR.
 
 ### Pendiente o en revision
 
-- Revisar endpoints incompletos o duplicados antes de considerar la API estable.
 - Confirmar el estado de migraciones aplicadas directamente en la base de datos de cada ambiente.
 - Completar documentacion de payloads y ejemplos de respuesta por endpoint.
 
@@ -94,6 +98,10 @@ abuela_empanadas_api/
 - `proveedores`
 - `insumos`
 - `stocks`
+- `categorias`
+- `monedas`
+- `metodos_pago`
+- `status_facturas`
 
 ## API Endpoints
 
@@ -127,7 +135,9 @@ abuela_empanadas_api/
 - `POST /api/v1/proveedores/` - Crea proveedor.
 - `GET /api/v1/insumos/` - Lista insumos.
 - `POST /api/v1/insumos/` - Crea insumo.
-- `GET /api/v1/reportes/` - Consulta reportes.
+- `GET /api/v1/reportes/` - Reporte de estado financiero (ventas - gastos).
+- `GET /api/v1/reportes/recibo/{factura_id}` - Genera PDF del recibo de una factura.
+- `GET /api/v1/reportes/ventas-termico` - Reporte de ventas por producto y metodo de pago.
 
 ## CI/CD
 
