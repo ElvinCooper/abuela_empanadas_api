@@ -1,11 +1,12 @@
 from datetime import date as date_type
+from decimal import Decimal
 from typing import Optional, Any
-from pydantic import BaseModel, field_validator, model_validator, Field
+from pydantic import BaseModel, field_validator, model_validator, Field, condecimal
 from app.schemas.common import BaseSchema
 
 
 
-float_global = Field(max_digits=10, decimal_places=2)
+decimal_field = condecimal(max_digits=10, decimal_places=2)
 
 
 class FacturaFiscalInput(BaseModel):
@@ -60,13 +61,13 @@ class FacturaDetalleItemRead(BaseModel):
     id_producto: int
     descripcion: str
     cantidad: int
-    precio_unitario:  float = float_global
-    subtotal_linea:   float = float_global
-    descuento_linea:  float = float_global
-    base_imponible:   float = float_global
-    porcentaje_itbis: float = float_global
-    itbis:            float = float_global
-    total_linea:      float = float_global
+    precio_unitario:  Decimal = decimal_field
+    subtotal_linea:   Decimal = decimal_field
+    descuento_linea:  Decimal = decimal_field
+    base_imponible:   Decimal = decimal_field
+    porcentaje_itbis: Decimal = decimal_field
+    itbis:            Decimal = decimal_field
+    total_linea:      Decimal = decimal_field
 
 
 class EncabezadoRead(BaseModel):
@@ -76,12 +77,12 @@ class EncabezadoRead(BaseModel):
     moneda: str
     metodo_pago: str
     estado: str
-    subtotal: float
-    porcentaje_descuento: float
-    descuento: float
-    base_imponible: float
-    total_itbis: float
-    total: float
+    subtotal: Decimal
+    porcentaje_descuento: Decimal
+    descuento: Decimal
+    base_imponible: Decimal
+    total_itbis: Decimal
+    total: Decimal
 
 
 class FacturaFiscalBlock(BaseModel):
@@ -113,18 +114,18 @@ class FacturaDataResponse(BaseModel):
                         id_producto=d.producto_id,
                         descripcion=d.producto.nombre if d.producto else "",
                         cantidad=d.cantidad,
-                        precio_unitario=float(d.precio_unitario),
-                        subtotal_linea=float(subtotal_linea),
-                        descuento_linea=float(d.descuento),
-                        base_imponible=float(d.base_imponible),
-                        porcentaje_itbis=float(d.itbis),
-                        itbis=float(d.itbis_aplicado),
-                        total_linea=float(d.total_linea),
+                        precio_unitario=Decimal(str(d.precio_unitario)),
+                        subtotal_linea=Decimal(str(subtotal_linea)),
+                        descuento_linea=Decimal(str(d.descuento or 0)),
+                        base_imponible=Decimal(str(d.base_imponible)),
+                        porcentaje_itbis=Decimal(str(d.itbis)),
+                        itbis=Decimal(str(d.itbis_aplicado)),
+                        total_linea=Decimal(str(d.total_linea)),
                     )
                 )
 
             fecha_str = data.created_at.strftime("%Y-%m-%d %H:%M:%S") if data.created_at is not None else ""
-            base_imponible = float(data.subtotal - data.descuento)
+            base_imponible = Decimal(str(data.subtotal - data.descuento))
 
             encabezado = EncabezadoRead(
                 id_factura=int(data.id),
@@ -133,12 +134,12 @@ class FacturaDataResponse(BaseModel):
                 moneda=data.moneda.nombre if data.moneda else "",
                 metodo_pago=data.metodo_pago.nombre if data.metodo_pago else "",
                 estado=data.status.nombre if data.status else "",
-                subtotal=float(data.subtotal),
-                porcentaje_descuento=float(data.porcentaje_descuento),
-                descuento=float(data.descuento),
+                subtotal=Decimal(str(data.subtotal)),
+                porcentaje_descuento=Decimal(str(data.porcentaje_descuento)),
+                descuento=Decimal(str(data.descuento)),
                 base_imponible=base_imponible,
-                total_itbis=float(data.itbis),
-                total=float(data.total_general),
+                total_itbis=Decimal(str(data.itbis)),
+                total=Decimal(str(data.total_general)),
             )
 
             fiscal = FacturaFiscalBlock(
