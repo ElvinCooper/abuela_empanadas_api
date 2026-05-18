@@ -23,7 +23,7 @@ def build_test_database_url(database_url: str, derive_database_name: bool) -> st
     database_name = parsed.path.lstrip("/")
     if derive_database_name:
         database_name = (
-            database_name.replace("abuela_empanadas", "abuela_empanadas_test")
+            database_name.replace("abuela_empanadas", "abuela_empanada_test")
             if "abuela_empanadas" in database_name
             else f"{database_name}_test"
         )
@@ -46,7 +46,7 @@ def build_test_database_url(database_url: str, derive_database_name: bool) -> st
 # Valores por defecto para el contenedor Docker que está corriendo en puerto 5433
 pg_user = os.getenv("TEST_POSTGRES_USER", "test_abuela_user")
 pg_pass = os.getenv("TEST_POSTGRES_PASSWORD", "test_abuela_password")
-pg_db = os.getenv("TEST_POSTGRES_DB", "abuela_empanadas_test")
+pg_db = os.getenv("TEST_POSTGRES_DB", "test_abuela_db")
 pg_host = os.getenv("TEST_POSTGRES_HOST", "127.0.0.1")
 pg_port = os.getenv("TEST_POSTGRES_PORT", "5433")
 

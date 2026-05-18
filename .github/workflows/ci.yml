@@ -18,7 +18,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: abuela_empanadas_test
+POSTGRES_DB: abuela_empanada_test
         ports:
           - 5432:5432
         options: >-
@@ -58,7 +58,7 @@ jobs:
       env:
         TEST_POSTGRES_USER: postgres
         TEST_POSTGRES_PASSWORD: postgres
-        TEST_POSTGRES_DB: abuela_empanadas_test
+        TEST_POSTGRES_DB: abuela_empanada_test
         TEST_POSTGRES_HOST: localhost
         TEST_POSTGRES_PORT: 5432
       run: |

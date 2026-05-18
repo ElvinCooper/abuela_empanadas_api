@@ -29,20 +29,21 @@ async def test_create_factura(async_client, usuario_admin):
     encabezado = data["encabezado"]
     assert encabezado["id_factura"] is not None
     assert encabezado["id_cliente"] == usuario_admin.id
-    assert encabezado["subtotal"] > 0
-    assert encabezado["descuento"] > 0
-    assert encabezado["base_imponible"] > 0
-    assert encabezado["total_itbis"] > 0
-    assert encabezado["total"] > 0
+    assert encabezado["subtotal"] is not None
+    assert float(encabezado["subtotal"]) > 0
+    assert float(encabezado["descuento"]) > 0
+    assert float(encabezado["base_imponible"]) > 0
+    assert float(encabezado["total_itbis"]) > 0
+    assert float(encabezado["total"]) > 0
     assert len(data["detalle"]) > 0
     detalle = data["detalle"][0]
     assert detalle["descripcion"] != ""
-    assert detalle["precio_unitario"] > 0
-    assert detalle["subtotal_linea"] > 0
-    assert detalle["base_imponible"] > 0
-    assert detalle["porcentaje_itbis"] >= 0
-    assert detalle["itbis"] >= 0
-    assert detalle["total_linea"] > 0
+    assert float(detalle["precio_unitario"]) > 0
+    assert float(detalle["subtotal_linea"]) > 0
+    assert float(detalle["base_imponible"]) > 0
+    assert float(detalle["porcentaje_itbis"]) >= 0
+    assert float(detalle["itbis"]) >= 0
+    assert float(detalle["total_linea"]) > 0
     _factura_id = encabezado["id_factura"]
 
 
@@ -102,18 +103,18 @@ async def test_create_factura_con_precio_personalizado(async_client, usuario_adm
     assert response.status_code == 201
     data = response.json()
     detalle = data["detalle"][0]
-    assert detalle["precio_unitario"] == 150.0
-    assert detalle["subtotal_linea"] == 300.0
-    assert detalle["descuento_linea"] == 0.0
-    assert detalle["base_imponible"] == 300.0
-    assert detalle["itbis"] == 54.0
-    assert detalle["total_linea"] == 354.0
+    assert float(detalle["precio_unitario"]) == 150.0
+    assert float(detalle["subtotal_linea"]) == 300.0
+    assert float(detalle["descuento_linea"]) == 0.0
+    assert float(detalle["base_imponible"]) == 300.0
+    assert float(detalle["itbis"]) == 54.0
+    assert float(detalle["total_linea"]) == 354.0
     enc = data["encabezado"]
-    assert enc["subtotal"] == 300.0
-    assert enc["descuento"] == 0.0
-    assert enc["base_imponible"] == 300.0
-    assert enc["total_itbis"] == 54.0
-    assert enc["total"] == 354.0
+    assert float(enc["subtotal"]) == 300.0
+    assert float(enc["descuento"]) == 0.0
+    assert float(enc["base_imponible"]) == 300.0
+    assert float(enc["total_itbis"]) == 54.0
+    assert float(enc["total"]) == 354.0
     _factura_id = enc["id_factura"]
 
 
@@ -136,18 +137,18 @@ async def test_create_factura_con_descuento_por_linea(async_client, usuario_admi
     assert response.status_code == 201
     data = response.json()
     detalle = data["detalle"][0]
-    assert detalle["precio_unitario"] == 200.0
-    assert detalle["subtotal_linea"] == 400.0
-    assert detalle["descuento_linea"] == 50.0
-    assert detalle["base_imponible"] == 350.0
-    assert detalle["itbis"] == 63.0
-    assert detalle["total_linea"] == 413.0
+    assert float(detalle["precio_unitario"]) == 200.0
+    assert float(detalle["subtotal_linea"]) == 400.0
+    assert float(detalle["descuento_linea"]) == 50.0
+    assert float(detalle["base_imponible"]) == 350.0
+    assert float(detalle["itbis"]) == 63.0
+    assert float(detalle["total_linea"]) == 413.0
     enc = data["encabezado"]
-    assert enc["subtotal"] == 400.0
-    assert enc["descuento"] == 50.0
-    assert enc["base_imponible"] == 350.0
-    assert enc["total_itbis"] == 63.0
-    assert enc["total"] == 413.0
+    assert float(enc["subtotal"]) == 400.0
+    assert float(enc["descuento"]) == 50.0
+    assert float(enc["base_imponible"]) == 350.0
+    assert float(enc["total_itbis"]) == 63.0
+    assert float(enc["total"]) == 413.0
     _factura_id = enc["id_factura"]
 
 
@@ -173,26 +174,26 @@ async def test_create_factura_mixto(async_client, usuario_admin):
     items = data["detalle"]
     assert len(items) == 2
 
-    assert items[0]["precio_unitario"] == 200.0
-    assert items[0]["subtotal_linea"] == 400.0
-    assert items[0]["descuento_linea"] == 50.0
-    assert items[0]["base_imponible"] == 350.0
-    assert items[0]["itbis"] == 63.0
-    assert items[0]["total_linea"] == 413.0
+    assert float(items[0]["precio_unitario"]) == 200.0
+    assert float(items[0]["subtotal_linea"]) == 400.0
+    assert float(items[0]["descuento_linea"]) == 50.0
+    assert float(items[0]["base_imponible"]) == 350.0
+    assert float(items[0]["itbis"]) == 63.0
+    assert float(items[0]["total_linea"]) == 413.0
 
-    assert items[1]["precio_unitario"] == 120.0
-    assert items[1]["subtotal_linea"] == 120.0
-    assert items[1]["descuento_linea"] == 12.0
-    assert items[1]["base_imponible"] == 108.0
-    assert items[1]["itbis"] == pytest.approx(19.44, rel=1e-3)
-    assert items[1]["total_linea"] == pytest.approx(127.44, rel=1e-3)
+    assert float(items[1]["precio_unitario"]) == 120.0
+    assert float(items[1]["subtotal_linea"]) == 120.0
+    assert float(items[1]["descuento_linea"]) == 12.0
+    assert float(items[1]["base_imponible"]) == 108.0
+    assert float(items[1]["itbis"]) == pytest.approx(19.44, rel=1e-3)
+    assert float(items[1]["total_linea"]) == pytest.approx(127.44, rel=1e-3)
 
     enc = data["encabezado"]
-    assert enc["subtotal"] == 520.0
-    assert enc["descuento"] == 62.0
-    assert enc["base_imponible"] == 458.0
-    assert enc["total_itbis"] == pytest.approx(82.44, rel=1e-3)
-    assert enc["total"] == pytest.approx(540.44, rel=1e-3)
+    assert float(enc["subtotal"]) == 520.0
+    assert float(enc["descuento"]) == 62.0
+    assert float(enc["base_imponible"]) == 458.0
+    assert float(enc["total_itbis"]) == pytest.approx(82.44, rel=1e-3)
+    assert float(enc["total"]) == pytest.approx(540.44, rel=1e-3)
     _factura_id = enc["id_factura"]
 
 
