@@ -81,6 +81,7 @@ async def setup_database(test_engine):
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+        from sqlalchemy import insert
         from app.models.sucursal import Sucursal
         from app.models.status_factura import StatusFactura
         from app.models.moneda import Moneda
@@ -88,7 +89,7 @@ async def setup_database(test_engine):
         from app.models.producto import Producto
 
         await conn.execute(
-            Moneda.__table__.insert(),
+            insert(Moneda),
             [
                 {
                     "id": 1,
@@ -100,7 +101,7 @@ async def setup_database(test_engine):
             ],
         )
         await conn.execute(
-            MetodoPago.__table__.insert(),
+            insert(MetodoPago),
             [
                 {"id": 1, "nombre": "Efectivo", "activo": True},
                 {"id": 2, "nombre": "Tarjeta", "activo": True},
@@ -108,7 +109,7 @@ async def setup_database(test_engine):
             ],
         )
         await conn.execute(
-            StatusFactura.__table__.insert(),
+            insert(StatusFactura),
             [
                 {
                     "id": 1,
@@ -131,7 +132,7 @@ async def setup_database(test_engine):
             ],
         )
         await conn.execute(
-            Sucursal.__table__.insert(),
+            insert(Sucursal),
             [
                 {
                     "id": 1,
@@ -148,7 +149,7 @@ async def setup_database(test_engine):
             )
         )
         await conn.execute(
-            Producto.__table__.insert(),
+            insert(Producto),
             [
                 {
                     "id": 1,
