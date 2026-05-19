@@ -14,7 +14,7 @@ async def list_categorias(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    result = await db.execute(select(Categoria))
+    result = await db.execute(select(Categoria).where(Categoria.activo == True))
     return result.scalars().all()
 
 
