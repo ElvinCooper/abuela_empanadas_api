@@ -1,14 +1,18 @@
 from datetime import date as date_type, datetime, time, timezone, timedelta
+from io import BytesIO
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles.numbers import FORMAT_CURRENCY_USD_SIMPLE
 from app.core.dependencies import get_db, get_current_user
 from app.core.logging_config import get_logger
 from app.models.usuario import Usuario
 from app.models.factura import Factura, FacturaDetalle
 from app.models.producto import Producto
-from app.models.categoria import Categoria
 from app.models.status_factura import StatusFactura
 from app.models.anulacion import Anulacion
 from app.schemas.factura import FacturaCreate, FacturaDataResponse
@@ -250,3 +254,230 @@ async def anular_factura(
     except Exception as e:
         logger.error(f"Error cancelling invoice: {type(e).__name__}")
         raise HTTPException(status_code=500, detail="Error cancelling invoice")
+
+
+@router.get("/exportar")
+async def exportar_facturas_excel(
+    fecha: date_type = Query(..., description="Fecha a exportar (YYYY-MM-DD)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    try:
+        fecha_inicio_dt = datetime.combine(fecha, time.min)
+        fecha_fin_dt = datetime.combine(fecha, time.max)
+
+        result = await db.execute(
+            select(Factura)
+            .options(
+                selectinload(Factura.sucursal),
+                selectinload(Factura.moneda),
+                selectinload(Factura.metodo_pago),
+                selectinload(Factura.status),
+                selectinload(Factura.detalles).selectinload(FacturaDetalle.producto),
+            )
+            .where(and_(Factura.created_at >= fecha_inicio_dt, Factura.created_at <= fecha_fin_dt))
+            .order_by(Factura.created_at.asc())
+        )
+        facturas = result.scalars().all()
+
+        if not facturas:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No hay facturas para la fecha indicated: {fecha}",
+            )
+
+        wb = Workbook()
+        ws_resumen = wb.active
+        ws_resumen.title = "Resumen Facturas"
+        ws_detalle = wb.create_sheet("Detalle Productos")
+
+        header_font = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="E67E22", end_color="E67E22", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        fecha_formateada = fecha.strftime("%d/%m/%Y")
+        ws_resumen.merge_cells("A1:I1")
+        ws_resumen["A1"] = f"RESUMEN DE VENTAS DEL DÍA - Abuela Empanadas\n{fecha_formateada}"
+        ws_resumen["A1"].font = header_font
+        ws_resumen["A1"].fill = header_fill
+        ws_resumen["A1"].alignment = header_alignment
+        ws_resumen.row_dimensions[1].height = 35
+
+        ws_detalle.merge_cells("A1:I1")
+        ws_detalle["A1"] = f"RESUMEN DE VENTAS DEL DÍA - Abuela Empanadas\n{fecha_formateada}"
+        ws_detalle["A1"].font = header_font
+        ws_detalle["A1"].fill = header_fill
+        ws_detalle["A1"].alignment = header_alignment
+        ws_detalle.row_dimensions[1].height = 35
+
+        cols_resumen = ["Fecha", "Sucursal", "Método Pago", "Estado", "Subtotal", "Descuento", "ITBIS", "Total"]
+        cols_detalle = ["ID Factura", "Producto", "Cantidad", "Precio Unit.", "Descuento", "Base Imponible", "ITBIS", "Sub-Total"]
+
+        for col_idx, col_name in enumerate(cols_resumen, start=1):
+            cell = ws_resumen.cell(row=3, column=col_idx, value=col_name)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="D9E2F3", end_color="D9E2F3", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center")
+
+        for col_idx, col_name in enumerate(cols_detalle, start=1):
+            cell = ws_detalle.cell(row=3, column=col_idx, value=col_name)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="D9E2F3", end_color="D9E2F3", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center")
+
+        total_subtotal = 0.0
+        total_descuento = 0.0
+        total_itbis = 0.0
+        total_general = 0.0
+        total_precio = 0.0
+        total_base = 0.0
+        total_linea = 0.0
+        row_num = 4
+        detalle_row = 4
+
+        for idx, factura in enumerate(facturas, start=1):
+            fecha_str = factura.created_at.strftime("%Y-%m-%d %H:%M") if factura.created_at else ""
+            sucursal_nom = getattr(getattr(factura, 'sucursal', None), 'nombre', '') or ""
+            metodo_pago_nom = getattr(getattr(factura, 'metodo_pago', None), 'nombre', '') or ""
+            status_nom = getattr(getattr(factura, 'status', None), 'nombre', '') or ""
+
+            ws_resumen.cell(row=row_num, column=1, value=fecha_str)
+            ws_resumen.cell(row=row_num, column=2, value=sucursal_nom)
+            ws_resumen.cell(row=row_num, column=3, value=metodo_pago_nom)
+            ws_resumen.cell(row=row_num, column=4, value=status_nom)
+
+            cell_subtotal = ws_resumen.cell(row=row_num, column=5, value=float(factura.subtotal or 0))
+            cell_subtotal.number_format = FORMAT_CURRENCY_USD_SIMPLE
+
+            cell_descuento = ws_resumen.cell(row=row_num, column=6, value=float(factura.descuento or 0))
+            cell_descuento.number_format = FORMAT_CURRENCY_USD_SIMPLE
+
+            cell_itbis = ws_resumen.cell(row=row_num, column=7, value=float(factura.itbis or 0))
+            cell_itbis.number_format = FORMAT_CURRENCY_USD_SIMPLE
+
+            cell_total = ws_resumen.cell(row=row_num, column=8, value=float(factura.total_general or 0))
+            cell_total.number_format = FORMAT_CURRENCY_USD_SIMPLE
+
+            total_subtotal += float(factura.subtotal or 0)  # type: ignore[assignment]
+            total_descuento += float(factura.descuento or 0)  # type: ignore[assignment]
+            total_itbis += float(factura.itbis or 0)  # type: ignore[assignment]
+            total_general += float(factura.total_general or 0)  # type: ignore[assignment]
+            row_num += 1
+
+            for detalle in factura.detalles:
+                producto_nom = getattr(getattr(detalle, 'producto', None), 'nombre', '') or ""
+                ws_detalle.cell(row=detalle_row, column=1, value=factura.id)
+                ws_detalle.cell(row=detalle_row, column=2, value=producto_nom)
+                ws_detalle.cell(row=detalle_row, column=3, value=detalle.cantidad)
+
+                cell_precio = ws_detalle.cell(row=detalle_row, column=4, value=float(detalle.precio_unitario or 0))
+                cell_precio.number_format = FORMAT_CURRENCY_USD_SIMPLE
+
+                cell_desc = ws_detalle.cell(row=detalle_row, column=5, value=float(detalle.descuento or 0))
+                cell_desc.number_format = FORMAT_CURRENCY_USD_SIMPLE
+
+                cell_base = ws_detalle.cell(row=detalle_row, column=6, value=float(detalle.base_imponible or 0))
+                cell_base.number_format = FORMAT_CURRENCY_USD_SIMPLE
+
+                cell_itbis = ws_detalle.cell(row=detalle_row, column=7, value=float(detalle.itbis_aplicado or 0))
+                cell_itbis.number_format = FORMAT_CURRENCY_USD_SIMPLE
+
+                cell_subtotal = ws_detalle.cell(row=detalle_row, column=8, value=float(detalle.total_linea or 0))
+                cell_subtotal.number_format = FORMAT_CURRENCY_USD_SIMPLE
+
+                total_precio += float(detalle.precio_unitario or 0) * detalle.cantidad
+                total_descuento += float(detalle.descuento or 0)
+                total_base += float(detalle.base_imponible or 0)
+                total_itbis += float(detalle.itbis_aplicado or 0)
+                total_linea += float(detalle.total_linea or 0)
+
+                detalle_row += 1
+
+        total_font = Font(name="Calibri", size=12, bold=True, color="FFFFFF")
+        total_fill = PatternFill(start_color="2E7D32", end_color="2E7D32", fill_type="solid")
+
+        cell_tot = ws_resumen.cell(row=row_num, column=4, value="TOTALES:")
+        cell_tot.font = total_font
+        cell_tot.fill = total_fill
+
+        cell_sub = ws_resumen.cell(row=row_num, column=5, value=total_subtotal)
+        cell_sub.number_format = FORMAT_CURRENCY_USD_SIMPLE
+        cell_sub.font = total_font
+        cell_sub.fill = total_fill
+
+        cell_desc = ws_resumen.cell(row=row_num, column=6, value=total_descuento)
+        cell_desc.number_format = FORMAT_CURRENCY_USD_SIMPLE
+        cell_desc.font = total_font
+        cell_desc.fill = total_fill
+
+        cell_itbis = ws_resumen.cell(row=row_num, column=7, value=total_itbis)
+        cell_itbis.number_format = FORMAT_CURRENCY_USD_SIMPLE
+        cell_itbis.font = total_font
+        cell_itbis.fill = total_fill
+
+        cell_total = ws_resumen.cell(row=row_num, column=8, value=total_general)
+        cell_total.number_format = FORMAT_CURRENCY_USD_SIMPLE
+        cell_total.font = total_font
+        cell_total.fill = total_fill
+
+        cell_total_det = ws_detalle.cell(row=detalle_row, column=2, value="TOTALES:")
+        cell_total_det.font = total_font
+        cell_total_det.fill = total_fill
+
+        cell_precio_det = ws_detalle.cell(row=detalle_row, column=4, value=total_precio)
+        cell_precio_det.number_format = FORMAT_CURRENCY_USD_SIMPLE
+        cell_precio_det.font = total_font
+        cell_precio_det.fill = total_fill
+
+        cell_desc_det = ws_detalle.cell(row=detalle_row, column=5, value=total_descuento)
+        cell_desc_det.number_format = FORMAT_CURRENCY_USD_SIMPLE
+        cell_desc_det.font = total_font
+        cell_desc_det.fill = total_fill
+
+        cell_base_det = ws_detalle.cell(row=detalle_row, column=6, value=total_base)
+        cell_base_det.number_format = FORMAT_CURRENCY_USD_SIMPLE
+        cell_base_det.font = total_font
+        cell_base_det.fill = total_fill
+
+        cell_itbis_det = ws_detalle.cell(row=detalle_row, column=7, value=total_itbis)
+        cell_itbis_det.number_format = FORMAT_CURRENCY_USD_SIMPLE
+        cell_itbis_det.font = total_font
+        cell_itbis_det.fill = total_fill
+
+        cell_linea_det = ws_detalle.cell(row=detalle_row, column=8, value=total_linea)
+        cell_linea_det.number_format = FORMAT_CURRENCY_USD_SIMPLE
+        cell_linea_det.font = total_font
+        cell_linea_det.fill = total_fill
+
+        from openpyxl.cell import Cell
+
+        for ws in [ws_resumen, ws_detalle]:
+            for col in ws.iter_cols():
+                first_cell = next((c for c in col if isinstance(c, Cell)), None)
+                if not first_cell:
+                    continue
+                column = first_cell.column_letter
+                max_length = 0
+                for cell in col:
+                    if isinstance(cell, Cell) and cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                if max_length > 0:
+                    ws.column_dimensions[column].width = max_length + 2
+
+        excel_buffer = BytesIO()
+        wb.save(excel_buffer)
+        excel_buffer.seek(0)
+
+        fecha_filename = fecha.strftime("%Y-%m-%d")
+        return StreamingResponse(
+            excel_buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename=facturas_{fecha_filename}.xlsx"
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting invoices: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error exporting invoices")
