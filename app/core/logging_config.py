@@ -1,6 +1,7 @@
 import logging
 import sys
 
+
 def setup_logging() -> None:
     logging.basicConfig(
         level=logging.INFO,
@@ -8,6 +9,7 @@ def setup_logging() -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
         stream=sys.stdout,
     )
+
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
