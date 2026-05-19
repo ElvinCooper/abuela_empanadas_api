@@ -1,6 +1,6 @@
 from datetime import date as date_type
 from decimal import Decimal
-from typing import Optional, Any
+from typing import Annotated, Optional, Any
 from pydantic import BaseModel, field_validator, model_validator, Field, condecimal
 from app.schemas.common import BaseSchema
 
@@ -61,13 +61,13 @@ class FacturaDetalleItemRead(BaseModel):
     id_producto: int
     descripcion: str
     cantidad: int
-    precio_unitario:  Decimal = decimal_field
-    subtotal_linea:   Decimal = decimal_field
-    descuento_linea:  Decimal = decimal_field
-    base_imponible:   Decimal = decimal_field
-    porcentaje_itbis: Decimal = decimal_field
-    itbis:            Decimal = decimal_field
-    total_linea:      Decimal = decimal_field
+    precio_unitario:    Annotated[Decimal, decimal_field]
+    subtotal_linea:     Annotated[Decimal, decimal_field]
+    descuento_linea:    Annotated[Decimal, decimal_field]
+    base_imponible:    Annotated[Decimal, decimal_field]
+    porcentaje_itbis:   Annotated[Decimal, decimal_field]
+    itbis:             Annotated[Decimal, decimal_field]
+    total_linea:       Annotated[Decimal, decimal_field]
 
 
 class SucursalInfo(BaseModel):
