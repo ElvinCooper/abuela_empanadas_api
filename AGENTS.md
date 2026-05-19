@@ -113,5 +113,29 @@ El agente tiene acceso a las siguientes skills que debe usar cuando sea relevant
 * **Matrix Builds:** Optimizar el tiempo de desarrollo utilizando flujos de trabajo de matriz para probar la API simultáneamente en **múltiples sistemas operativos** (Linux, macOS, Windows) y versiones de Python.
 * **Gestión de Secretos:** Utilizar el **almacén de secretos integrado (Secret Store)** para manejar credenciales, tokens y claves de API, asegurando que nunca se expongan en los archivos de configuración del repositorio.
 
-**Depuración Eficiente:** Utilizar los **logs en tiempo real** para identificar fallos rápidamente mediante enlaces directos a las líneas de código donde falló la integración continua.
+## 16. Linting y Type Checking
+
+* **Ejecución Obligatoria:** Después de generar código, se debe ejecutar linting y type checking.
+* **Herramientas:**
+  * **Ruff:** Para linting y formateo de código. Comando: `ruff check app/`
+  * **Mypy:** Para verificación de tipos estáticos. Comando: `mypy app/ --ignore-missing-imports`
+* **Orden de ejecución:** Primero ruff, luego mypy.
+* **Errores:** Ningún error de lint o type checking debe quedar sin resolver antes de hacer commit.
+
+**Flujo de trabajo post-generación:**
+1. Generar código
+2. Ejecutar `ruff check app/` - Corregir errores de linting
+3. Ejecutar `mypy app/ --ignore-missing-imports` - Corregir errores de tipos
+4. Commit solo cuando ambos pasen sin errores
+
+**Regla 17. Configuración de Ruff en pyproject.toml**
+
+* **Extend/Ruff:** El proyecto usa Ruff como linter principal en lugar de flake8.
+* **Configuración requerida:** Agregar sección `[tool.ruff]` en `pyproject.toml`.
+* **Reglas habilitadas por defecto:**
+  * F: Pyflakes (errores de sintaxis, imports no utilizados)
+  * E: Errores de estilo pycodestyle
+  * W: Advertencias de estilo pycodestyle
+* **Ignorar en línea:** Usar `# noqa: F401` solo cuando sea absolutamente necesario.
+* **Comando de formateo:** `ruff format app/` para formateo automático.
   
