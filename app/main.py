@@ -6,6 +6,10 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.api.v1.router import api_router
+from app.core.logging_config import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -15,11 +19,25 @@ app = FastAPI(title="Abuela Empanadas API", version="1.0.0")
 app.state.limiter = limiter
 
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Application started")
+
+
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
         status_code=429,
         content={"detail": "Too many requests. Please try again later."}
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error: {type(exc).__name__} - Path: {request.url.path}")
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error", "code": 500}
     )
 
 
