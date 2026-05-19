@@ -89,10 +89,7 @@ jobs:
     - name: Run Semgrep Security Scan
       uses: returntocorp/semgrep-action@v1
       with:
-        config:
-          - "p/owasp-top-ten"
-          - "p/ci"
-          - "auto"
+        config: "p/owasp-top-ten,p/ci,auto"
       env:
         SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
