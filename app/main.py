@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -11,17 +12,20 @@ from app.core.logging_config import setup_logging, get_logger
 setup_logging()
 logger = get_logger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Application started")
+    yield
+    logger.info("Application shutdown")
+
+
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(title="Abuela Empanadas API", version="1.0.0")
+app = FastAPI(title="Abuela Empanadas API", version="1.0.0", lifespan=lifespan)
 
 # Add rate limiter
 app.state.limiter = limiter
-
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Application started")
 
 
 @app.exception_handler(RateLimitExceeded)
